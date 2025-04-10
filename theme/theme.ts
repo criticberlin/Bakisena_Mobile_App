@@ -2,7 +2,7 @@ import { Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Colors - Updated with 2024/2025 design
+// Colors - Updated with 2025 design
 const colors = {
   // Main colors from design reference
   primary: '#1C1C3C', // Dark navy background

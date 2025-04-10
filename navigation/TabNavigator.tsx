@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
 
 // Import the screens for each tab
 import MonitorScreen from '../screens/MonitorScreen';
@@ -38,6 +39,8 @@ type RouteProps = {
 
 const TabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const { themeMode, colors } = useTheme();
+  const { t } = useLanguage();
   
   return (
     <Tab.Navigator
@@ -63,54 +66,82 @@ const TabNavigator = () => {
 
           return (
             <View style={styles.iconContainer}>
-              <Ionicons 
-                name={iconName} 
-                size={focused ? size + 4 : size} 
-                color={color} 
-              />
+              <Animated.View 
+                style={[
+                  styles.iconCircle,
+                  {backgroundColor: focused ? 'rgba(249, 178, 51, 0.2)' : 'transparent'}
+                ]}
+              >
+                <Ionicons 
+                  name={iconName} 
+                  size={focused ? size + 2 : size} 
+                  color={color} 
+                />
+              </Animated.View>
               {focused && <View style={styles.activeIndicator} />}
             </View>
           );
         },
-        tabBarActiveTintColor: theme.colors.accent,
-        tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)",
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: themeMode === 'dark' ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.6)",
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: 'rgba(28, 28, 60, 0.85)',
+          backgroundColor: themeMode === 'dark' ? 'rgba(28, 28, 60, 0.85)' : 'rgba(255, 255, 255, 0.85)',
           borderTopWidth: 0,
-          height: 60 + (Platform.OS === 'ios' ? insets.bottom : 10),
+          height: 70 + (Platform.OS === 'ios' ? insets.bottom : 10),
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
           paddingTop: 10,
-          borderTopLeftRadius: theme.borders.radius.xl,
-          borderTopRightRadius: theme.borders.radius.xl,
-          shadowColor: theme.shadows.lg.shadowColor,
-          shadowOffset: theme.shadows.lg.shadowOffset,
-          shadowOpacity: theme.shadows.lg.shadowOpacity,
-          shadowRadius: theme.shadows.lg.shadowRadius,
-          elevation: 8,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          elevation: 24,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
-          marginTop: 1,
+          fontWeight: '600',
+          marginTop: 4,
+          marginBottom: 4,
         },
         tabBarItemStyle: {
-          paddingVertical: 5,
+          paddingVertical: 6,
         },
         tabBarBackground: () => (
           <BlurView 
-            intensity={25} 
-            tint="dark" 
+            intensity={30} 
+            tint={themeMode === 'dark' ? "dark" : "light"} 
             style={StyleSheet.absoluteFill}
           />
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Monitor" component={MonitorScreen} />
-      <Tab.Screen name="Parking" component={ParkingScreen} />
-      <Tab.Screen name="Connected" component={ConnectedScreen} />
-      <Tab.Screen name="Account" component={AccountScreen} />
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ tabBarLabel: t('home') }}
+      />
+      <Tab.Screen 
+        name="Monitor" 
+        component={MonitorScreen} 
+        options={{ tabBarLabel: t('monitor') }}
+      />
+      <Tab.Screen 
+        name="Parking" 
+        component={ParkingScreen} 
+        options={{ tabBarLabel: t('parking') }}
+      />
+      <Tab.Screen 
+        name="Connected" 
+        component={ConnectedScreen} 
+        options={{ tabBarLabel: t('connected') }}
+      />
+      <Tab.Screen 
+        name="Account" 
+        component={AccountScreen} 
+        options={{ tabBarLabel: t('account') }}
+      />
     </Tab.Navigator>
   );
 };
@@ -119,16 +150,23 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
+  },
+  iconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeIndicator: {
     position: 'absolute',
     bottom: -2,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.accent,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(249, 178, 51, 1)',
   },
 });
 

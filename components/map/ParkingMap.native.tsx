@@ -13,15 +13,24 @@ import {
 import MapView, { Marker, Callout, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { ParkingMapProps, cairoParkingSpots, COLORS, ParkingSpot } from './constants';
 
-// Map style to make it look modern
+// Map style to make it look modern and dark
 const mapStyle = [
   {
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#f5f5f5"
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "off"
       }
     ]
   },
@@ -29,7 +38,7 @@ const mapStyle = [
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#616161"
+        "color": "#757575"
       }
     ]
   },
@@ -37,12 +46,38 @@ const mapStyle = [
     "elementType": "labels.text.stroke",
     "stylers": [
       {
-        "color": "#f5f5f5"
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.country",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
       }
     ]
   },
   {
     "featureType": "administrative.land_parcel",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.locality",
     "elementType": "labels.text.fill",
     "stylers": [
       {
@@ -52,15 +87,6 @@ const mapStyle = [
   },
   {
     "featureType": "poi",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#eeeeee"
-      }
-    ]
-  },
-  {
-    "featureType": "poi",
     "elementType": "labels.text.fill",
     "stylers": [
       {
@@ -73,39 +99,12 @@ const mapStyle = [
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e5e5e5"
+        "color": "#181818"
       }
     ]
   },
   {
     "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#ffffff"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#dadada"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
     "elementType": "labels.text.fill",
     "stylers": [
       {
@@ -114,11 +113,56 @@ const mapStyle = [
     ]
   },
   {
-    "featureType": "road.arterial",
+    "featureType": "poi.park",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1b1b1b"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#2c2c2c"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#757575"
+        "color": "#8a8a8a"
+      }
+    ]
+  },
+  {
+    "featureType": "road.arterial",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#373737"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#3c3c3c"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway.controlled_access",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#4e4e4e"
       }
     ]
   },
@@ -127,25 +171,16 @@ const mapStyle = [
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#9e9e9e"
+        "color": "#616161"
       }
     ]
   },
   {
-    "featureType": "transit.line",
-    "elementType": "geometry",
+    "featureType": "transit",
+    "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#e5e5e5"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#eeeeee"
+        "color": "#757575"
       }
     ]
   },
@@ -154,7 +189,7 @@ const mapStyle = [
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#c9c9c9"
+        "color": "#000000"
       }
     ]
   },
@@ -163,7 +198,7 @@ const mapStyle = [
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#9e9e9e"
+        "color": "#3d3d3d"
       }
     ]
   }
@@ -198,8 +233,9 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   const insets = useSafeAreaInsets();
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [activeTab, setActiveTab] = useState('Parking');
+  const [activeTab, setActiveTab] = useState('map');
   const mapRef = useRef<MapView>(null);
+  const buttonScale = useRef(new Animated.Value(1)).current;
   
   // Function to handle spot selection
   const handleSpotPress = (spot: ParkingSpot) => {
@@ -275,25 +311,47 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Modern Header with Blur Effect */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Smart Parking System</Text>
+        <BlurView intensity={30} tint="dark" style={styles.headerBlur}>
+          <Text style={styles.headerTitle}>Smart Parking</Text>
+          <View style={styles.headerControls}>
+            <TouchableOpacity style={styles.headerButton}>
+              <Ionicons name="notifications-outline" size={26} color={COLORS.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton}>
+              <Ionicons name="settings-outline" size={26} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+        </BlurView>
       </View>
       
-      {/* Parking Info Banner */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Parking dots labeled with a "P"{"\n"}
-          are marked as available or reserved
-        </Text>
-        <View style={styles.arrowContainer}>
-          <Ionicons name="arrow-forward" size={24} color="white" />
-        </View>
+      {/* Parking Status Card */}
+      <View style={styles.statusCardContainer}>
+        <BlurView intensity={20} tint="dark" style={styles.statusCard}>
+          <View style={styles.statusCardContent}>
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Entry Time</Text>
+              <Text style={styles.statusValue}>{entryTime}</Text>
+            </View>
+            <View style={styles.statusDivider} />
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Exit Time</Text>
+              <Text style={styles.statusValue}>{estimatedExitTime}</Text>
+            </View>
+            <View style={styles.statusDivider} />
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Status</Text>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>Live</Text>
+              </View>
+            </View>
+          </View>
+        </BlurView>
       </View>
       
-      {/* Main Content - Parking Grid Map */}
+      {/* Main Content - Parking Map */}
       <View style={styles.mapContainer}>
-        {/* Option 1: Use a real map with MapView */}
         {Platform.OS !== 'web' && (
           <MapView
             ref={mapRef}
@@ -318,17 +376,46 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
               >
                 <View style={[
                   styles.markerContainer,
-                  { backgroundColor: spot.status === 'available' ? COLORS.available : COLORS.reserved }
+                  spot.status === 'available' ? styles.availableMarker : styles.reservedMarker
                 ]}>
                   <Text style={styles.markerText}>P</Text>
                 </View>
                 <Callout tooltip>
                   <View style={styles.calloutContainer}>
-                    <Text style={styles.calloutTitle}>{spot.name}</Text>
-                    <Text style={styles.calloutDetail}>Status: {spot.status}</Text>
-                    {spot.floor && <Text style={styles.calloutDetail}>Floor: {spot.floor}</Text>}
-                    {spot.price && <Text style={styles.calloutDetail}>Price: ${spot.price}/hr</Text>}
-                    {spot.distance && <Text style={styles.calloutDetail}>Distance: {spot.distance} km</Text>}
+                    <Text style={styles.calloutTitle}>{spot.name || `Spot ${spot.id}`}</Text>
+                    <View style={styles.calloutStatusContainer}>
+                      <View style={[
+                        styles.calloutStatusIndicator, 
+                        { backgroundColor: spot.status === 'available' ? COLORS.success : COLORS.accent }
+                      ]} />
+                      <Text style={styles.calloutStatus}>
+                        {spot.status === 'available' ? 'Available' : 'Reserved'}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.calloutDetailsGrid}>
+                      {spot.floor && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="layers-outline" size={16} color={COLORS.subtext} />
+                          <Text style={styles.calloutDetail}>Floor {spot.floor}</Text>
+                        </View>
+                      )}
+                      
+                      {spot.price && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="cash-outline" size={16} color={COLORS.subtext} />
+                          <Text style={styles.calloutDetail}>${spot.price}/hr</Text>
+                        </View>
+                      )}
+                      
+                      {spot.distance && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="location-outline" size={16} color={COLORS.subtext} />
+                          <Text style={styles.calloutDetail}>{spot.distance} km</Text>
+                        </View>
+                      )}
+                    </View>
+                    
                     <TouchableOpacity
                       style={[
                         styles.reserveButton,
@@ -336,81 +423,25 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                       ]}
                       onPress={() => handleReserveSpot(spot)}
                       disabled={spot.status === 'reserved'}
+                      activeOpacity={0.8}
                     >
                       <Text style={styles.reserveButtonText}>
-                        {spot.status === 'available' ? 'Reserve' : 'Reserved'}
+                        {spot.status === 'available' ? 'Reserve Spot' : 'Already Reserved'}
                       </Text>
                     </TouchableOpacity>
                   </View>
                 </Callout>
               </Marker>
             ))}
+            
             {/* User location marker */}
-            <Marker
-              coordinate={userLocation}
-            >
+            <Marker coordinate={userLocation}>
               <View style={styles.userMarker}>
-                <Ionicons name="car" size={20} color="white" />
+                <View style={styles.userMarkerDot} />
+                <View style={styles.userMarkerRing} />
               </View>
             </Marker>
           </MapView>
-        )}
-        
-        {/* Option 2: Simplified Grid View (similar to image) */}
-        {Platform.OS === 'web' && (
-          <View style={styles.gridContainer}>
-            <View style={styles.parkingGrid}>
-              {/* Row 1 */}
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={[styles.parkingSpot, styles.availableSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-                <View style={styles.gridCell} />
-                <View style={[styles.parkingSpot, styles.availableSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-                <View style={styles.gridCell} />
-              </View>
-              
-              {/* Row 2 */}
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-                <View style={styles.userLocation}>
-                  <Ionicons name="car" size={22} color="#333" />
-                </View>
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-              </View>
-              
-              {/* Row 3 */}
-              <View style={styles.gridRow}>
-                <View style={[styles.parkingSpot, styles.availableSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-                <View style={[styles.parkingSpot, styles.availableSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-              </View>
-              
-              {/* Row 4 */}
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={[styles.parkingSpot, styles.reservedSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-                <View style={styles.gridCell} />
-                <View style={[styles.parkingSpot, styles.reservedSpot]}>
-                  <Text style={styles.spotLabel}>P</Text>
-                </View>
-                <View style={styles.gridCell} />
-              </View>
-            </View>
-          </View>
         )}
         
         {/* Map Controls */}
@@ -418,116 +449,74 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
           <TouchableOpacity 
             style={styles.controlButton}
             onPress={handleZoomIn}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={24} color="#333" />
+            <Ionicons name="add" size={24} color={COLORS.text} />
           </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.controlButton}
             onPress={handleZoomOut}
+            activeOpacity={0.7}
           >
-            <Ionicons name="remove" size={24} color="#333" />
+            <Ionicons name="remove" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.controlButton}
+            onPress={() => mapRef.current?.animateToRegion(initialRegion, 500)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="locate" size={24} color={COLORS.text} />
           </TouchableOpacity>
         </View>
-      </View>
-      
-      {/* Features Bar */}
-      <View style={styles.featuresBar}>
-        <View style={styles.featureItem}>
-          <Ionicons name="bookmark" size={18} color="white" />
-          <Text style={styles.featureText}>Reserve Your Spot: Allows{"\n"}users to pre-book a parking space.</Text>
-        </View>
-        <View style={styles.featureItem}>
-          <Ionicons name="time" size={18} color="white" />
-          <Text style={styles.featureText}>Entry Time: Shows{"\n"}expected entry time.</Text>
-        </View>
-      </View>
-      
-      {/* Time Information */}
-      <View style={styles.timeInfoContainer}>
-        <View style={styles.timeInfoSection}>
-          <Ionicons name="arrow-up" size={18} color="black" />
-          <Text style={styles.timeInfoLabel}>Entry Time</Text>
-          <Text style={styles.timeInfoValue}>{entryTime}</Text>
-        </View>
         
-        <View style={styles.timeInfoDivider} />
-        
-        <View style={styles.timeInfoSection}>
-          <Text style={styles.timeInfoLabel}>Estimated Exit</Text>
-          <Text style={styles.timeInfoValue}>{estimatedExitTime}</Text>
+        {/* Legend */}
+        <View style={styles.legendContainer}>
+          <BlurView intensity={20} tint="dark" style={styles.legend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.available }]} />
+              <Text style={styles.legendText}>Available</Text>
+            </View>
+            
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.reserved }]} />
+              <Text style={styles.legendText}>Reserved</Text>
+            </View>
+            
+            <View style={styles.legendItem}>
+              <View style={styles.userMarkerDot} />
+              <Text style={styles.legendText}>Your Location</Text>
+            </View>
+          </BlurView>
         </View>
       </View>
       
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNavBar}>
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Monitor' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Monitor')}
+      {/* Bottom Action Button */}
+      <View style={styles.bottomActionContainer}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          activeOpacity={0.8}
+          onPress={() => {
+            if (selectedSpot) {
+              handleReserveSpot(selectedSpot);
+            } else {
+              // Show a message or navigate to spot selection
+              handleTabPress('list');
+            }
+          }}
         >
-          <Ionicons 
-            name="car" 
-            size={24} 
-            color={activeTab === 'Monitor' ? "white" : "#94A3B8"} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Monitor' && styles.activeNavText]}>
-            Monitor
+          <Text style={styles.actionButtonText}>
+            {selectedSpot ? 'Reserve Selected Spot' : 'Find Available Spot'}
           </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Parking' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Parking')}
-        >
-          <Ionicons 
-            name="compass" 
-            size={24} 
-            color={activeTab === 'Parking' ? "white" : "#94A3B8"} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Parking' && styles.activeNavText]}>
-            Parking
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Connected' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Connected')}
-        >
-          <Ionicons 
-            name="link" 
-            size={24} 
-            color={activeTab === 'Connected' ? "white" : "#94A3B8"} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Connected' && styles.activeNavText]}>
-            Connected
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Account' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Account')}
-        >
-          <Ionicons 
-            name="person" 
-            size={24} 
-            color={activeTab === 'Account' ? "white" : "#94A3B8"} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Account' && styles.activeNavText]}>
-            Account
-          </Text>
+          <Ionicons name="arrow-forward" size={24} color={COLORS.text} />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// Adjust sizes based on screen dimensions for responsiveness
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const scale = SCREEN_WIDTH / 375; // Based on standard iPhone dimensions
-
-const normalize = (size: number) => {
-  const newSize = size * scale;
-  return Math.round(Platform.OS === 'ios' ? newSize : newSize - 2);
-};
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -535,40 +524,90 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   headerContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 10,
+    width: '100%',
+    overflow: 'hidden',
   },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  infoContainer: {
+  headerBlur: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 10,
-    marginHorizontal: 10,
-    borderRadius: 8,
-    marginVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  infoText: {
-    color: COLORS.white,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    marginLeft: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  statusCardContainer: {
+    position: 'absolute',
+    top: 80,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    paddingHorizontal: 16,
+  },
+  statusCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  statusCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: 'rgba(42, 42, 79, 0.6)',
+  },
+  statusItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statusLabel: {
     fontSize: 12,
+    color: COLORS.subtext,
+    marginBottom: 4,
   },
-  arrowContainer: {
-    padding: 5,
+  statusValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  statusDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 8,
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(249, 178, 51, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  statusBadgeText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: '600',
   },
   mapContainer: {
     flex: 1,
-    borderRadius: 15,
-    margin: 10,
-    overflow: 'hidden',
-    position: 'relative',
+    width: '100%',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -577,229 +616,187 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  markerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  userMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  calloutContainer: {
-    width: 200,
-    padding: 10,
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  calloutTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: COLORS.black,
-  },
-  calloutDetail: {
-    fontSize: 12,
-    color: '#333333',
-    marginBottom: 3,
-  },
-  reserveButton: {
-    backgroundColor: COLORS.primary,
-    padding: 8,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  reservedButton: {
-    backgroundColor: COLORS.disabled,
-  },
-  reserveButtonText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  gridContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-  },
-  parkingGrid: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  gridRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 8,
-  },
-  gridCell: {
-    width: 40,
-    height: 40,
-    margin: 5,
-  },
-  parkingSpot: {
-    width: 40,
-    height: 40,
-    borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
-  },
-  availableSpot: {
-    backgroundColor: COLORS.available,
-  },
-  reservedSpot: {
-    backgroundColor: COLORS.reserved,
-  },
-  spotLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  userLocation: {
-    width: 40,
-    height: 40,
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 5,
-  },
-  mapControls: {
-    position: 'absolute',
-    right: 15,
-    bottom: 15,
-  },
-  controlButton: {
-    width: 36,
-    height: 36,
-    backgroundColor: 'white',
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  featuresBar: {
-    backgroundColor: 'rgba(30, 58, 138, 0.9)',
-    margin: 10,
-    marginTop: 0,
-    borderRadius: 8,
-    padding: 10,
+  availableMarker: {
+    backgroundColor: COLORS.available,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  reservedMarker: {
+    backgroundColor: COLORS.reserved,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  markerText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.background,
+  },
+  calloutContainer: {
+    width: 220,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  calloutTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: 8,
-    paddingHorizontal: 5,
   },
-  featureText: {
-    color: COLORS.white,
-    fontSize: 12,
+  calloutStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calloutStatusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  calloutStatus: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  calloutDetailsGrid: {
+    marginBottom: 12,
+  },
+  calloutDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  calloutDetail: {
+    fontSize: 14,
+    color: COLORS.subtext,
     marginLeft: 8,
   },
-  timeInfoContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    margin: 10,
-    marginTop: 0,
-    padding: 15,
-  },
-  timeInfoSection: {
-    flex: 1,
+  reserveButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
-  timeInfoLabel: {
-    fontSize: 12,
-    color: '#666',
+  reservedButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  reserveButtonText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  userMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userMarkerDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.accent,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  userMarkerRing: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    opacity: 0.5,
+  },
+  mapControls: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -75 }],
+    backgroundColor: 'rgba(42, 42, 79, 0.8)',
+    borderRadius: 16,
+    padding: 8,
+    elevation: 5,
+  },
+  controlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 4,
   },
-  timeInfoValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+  legendContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 16,
+    right: 16,
+    overflow: 'hidden',
+    borderRadius: 16,
   },
-  timeInfoDivider: {
-    width: 1,
-    height: '80%',
-    backgroundColor: '#e0e0e0',
-    marginHorizontal: 15,
-    alignSelf: 'center',
-  },
-  bottomNavBar: {
+  legend: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  navButton: {
-    flex: 1,
     alignItems: 'center',
-    paddingVertical: 5,
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(42, 42, 79, 0.6)',
   },
-  activeNavButton: {
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.secondary,
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  navButtonText: {
-    color: COLORS.subtext,
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  legendText: {
+    color: COLORS.text,
     fontSize: 12,
-    marginTop: 5,
   },
-  activeNavText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
+  bottomActionContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 16,
+    right: 16,
+  },
+  actionButton: {
+    backgroundColor: COLORS.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionButtonText: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
 

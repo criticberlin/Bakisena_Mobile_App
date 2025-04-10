@@ -1,0 +1,110 @@
+export const ar = {
+  // Common
+  appName: 'بكيسنا',
+  
+  // Auth screens
+  welcome: 'مرحبا',
+  welcomeBack: 'مرحبا بعودتك',
+  signIn: 'تسجيل الدخول',
+  signUp: 'تسجيل',
+  login: 'دخول',
+  register: 'تسجيل',
+  forgotPassword: 'نسيت كلمة المرور؟',
+  resetPassword: 'إعادة تعيين كلمة المرور',
+  email: 'البريد الإلكتروني',
+  password: 'كلمة المرور',
+  confirmPassword: 'تأكيد كلمة المرور',
+  fullName: 'الاسم الكامل',
+  phoneNumber: 'رقم الهاتف',
+  enterEmail: 'أدخل بريدك الإلكتروني',
+  enterPassword: 'أدخل كلمة المرور',
+  enterFullName: 'أدخل اسمك الكامل',
+  enterPhoneNumber: 'أدخل رقم هاتفك',
+  dontHaveAccount: 'ليس لديك حساب؟',
+  alreadyHaveAccount: 'هل لديك حساب بالفعل؟',
+  createAccount: 'إنشاء حساب',
+  
+  // Validation messages
+  invalidEmail: 'يرجى إدخال عنوان بريد إلكتروني صالح',
+  passwordTooShort: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+  passwordsDontMatch: 'كلمات المرور غير متطابقة',
+  fieldRequired: 'هذا الحقل مطلوب',
+  
+  // Dashboard
+  dashboard: 'لوحة التحكم',
+  home: 'الرئيسية',
+  parking: 'وقوف السيارات',
+  monitor: 'مراقبة',
+  account: 'الحساب',
+  connected: 'متصل',
+  
+  // Parking
+  parkingStatus: 'حالة مواقف السيارات',
+  availableSlots: 'المواقف المتاحة',
+  occupiedSlots: 'المواقف المشغولة',
+  reservedSlots: 'المواقف المحجوزة',
+  totalSlots: 'إجمالي المواقف',
+  
+  // Booking
+  bookParking: 'حجز موقف',
+  selectLocation: 'اختر الموقع',
+  selectSlot: 'اختر الموقف',
+  selectVehicle: 'اختر السيارة',
+  selectDateTime: 'اختر التاريخ والوقت',
+  startDate: 'تاريخ البدء',
+  endDate: 'تاريخ الانتهاء',
+  duration: 'المدة',
+  totalCost: 'التكلفة الإجمالية',
+  confirmBooking: 'تأكيد الحجز',
+  
+  // Account
+  profile: 'الملف الشخصي',
+  settings: 'الإعدادات',
+  myBookings: 'حجوزاتي',
+  myVehicles: 'سياراتي',
+  paymentMethods: 'طرق الدفع',
+  logOut: 'تسجيل الخروج',
+  darkMode: 'الوضع الداكن',
+  language: 'اللغة',
+  english: 'الإنجليزية',
+  arabic: 'العربية',
+  confirmLogout: 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+  languageChanged: 'تم تغيير اللغة',
+  restartAppMessage: 'يرجى إعادة تشغيل التطبيق لتطبيق التغييرات بشكل كامل',
+  ok: 'موافق',
+  about: 'معلومات عنا',
+  
+  // Settings
+  appSettings: 'إعدادات التطبيق',
+  notifications: 'الإشعارات',
+  pushNotifications: 'إشعارات الدفع',
+  notificationsDescription: 'تلقي تنبيهات حول حجوزاتك',
+  emailNotifications: 'إشعارات البريد الإلكتروني',
+  emailNotificationsDescription: 'تلقي تحديثات البريد الإلكتروني والإيصالات',
+  darkModeEnabled: 'تم تمكين الوضع الداكن',
+  lightModeEnabled: 'تم تمكين الوضع الفاتح',
+  aboutApp: 'حول التطبيق',
+  version: 'الإصدار',
+  termsOfService: 'شروط الخدمة',
+  privacyPolicy: 'سياسة الخصوصية',
+  
+  // Admin
+  adminPanel: 'لوحة الإدارة',
+  users: 'المستخدمين',
+  parkingLocations: 'مواقع وقوف السيارات',
+  parkingSlots: 'مواقف السيارات',
+  reports: 'التقارير',
+  statistics: 'الإحصائيات',
+  
+  // Actions
+  save: 'حفظ',
+  cancel: 'إلغاء',
+  confirm: 'تأكيد',
+  edit: 'تعديل',
+  delete: 'حذف',
+  add: 'إضافة',
+  back: 'رجوع',
+  next: 'التالي',
+  previous: 'السابق',
+  backToHome: 'العودة إلى الرئيسية',
+}; 

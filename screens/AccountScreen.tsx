@@ -1,351 +1,300 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Image, 
+  Switch,
+  Alert,
+  I18nManager
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import theme from '../theme/theme';
+import { BlurView } from 'expo-blur';
+import { RootStackParamList } from '../types';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
 import ActionButton from '../components/ActionButton';
+import { MOCK_USERS } from '../constants/mockData';
 
-const AccountScreen = () => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+type AccountScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
-  // Mock user data
-  const user = {
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    phone: '+20 123 456 7890',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    memberSince: 'March 2023',
-    reservations: 14,
-    favoriteLocations: 3,
-    savedPayments: 2,
+const AccountScreen: React.FC = () => {
+  const navigation = useNavigation<AccountScreenNavigationProp>();
+  const { themeMode, toggleTheme, colors } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+  
+  // Mock logged in user
+  const [user] = useState(MOCK_USERS[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleLogout = () => {
+    Alert.alert(
+      t('logOut'),
+      t('confirmLogout'),
+      [
+        {
+          text: t('cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('logOut'),
+          onPress: () => {
+            setIsLoading(true);
+            // Simulate logout process
+            setTimeout(() => {
+              setIsLoading(false);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'LoginOptions' }],
+              });
+            }, 1000);
+          },
+        },
+      ],
+    );
+  };
+  
+  const handleLanguageChange = async () => {
+    const newLanguage = language === 'en' ? 'ar' : 'en';
+    await setLanguage(newLanguage);
+    
+    // Notify user that app might need to restart for proper RTL layout
+    if (I18nManager.isRTL !== (newLanguage === 'ar')) {
+      // This reloads all navigation and screens, which will pick up the new language
+      Alert.alert(
+        t('languageChanged'),
+        t('restartAppMessage'),
+        [{ 
+          text: t('ok'),
+          onPress: () => {
+            // This will cause all screens to re-render with the new language
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' }],
+            });
+          }
+        }]
+      );
+    }
   };
 
-  // Option item component
-  interface SettingItemProps {
-    icon: string;
-    title: string;
-    subtitle?: string;
-    hasSwitch?: boolean;
-    switchValue?: boolean;
-    onSwitchChange?: (value: boolean) => void;
-    onPress?: () => void;
-  }
-
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle = '', 
-    hasSwitch = false, 
-    switchValue = false, 
-    onSwitchChange,
-    onPress
-  }: SettingItemProps) => (
-    <TouchableOpacity 
-      style={styles.settingItem}
-      disabled={!onPress}
-      onPress={onPress}
-    >
-      <View style={styles.settingIconContainer}>
-        <Ionicons name={icon as any} size={22} color={theme.colors.accent} />
-      </View>
-      
-      <View style={styles.settingContent}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.settingSubtitle}>{subtitle}</Text> : null}
-      </View>
-      
-      {hasSwitch ? (
-        <Switch
-          value={switchValue}
-          onValueChange={onSwitchChange}
-          trackColor={{ false: '#767577', true: `${theme.colors.accent}80` }}
-          thumbColor={switchValue ? theme.colors.accent : '#f4f3f4'}
-        />
-      ) : (
-        onPress && <Ionicons name="chevron-forward" size={20} color={theme.colors.text.primary} />
-      )}
-    </TouchableOpacity>
-  );
+  const menuItems = [
+    {
+      icon: 'person-outline',
+      title: t('profile'),
+      onPress: () => navigation.navigate('EditProfile'),
+    },
+    {
+      icon: 'car-outline',
+      title: t('myVehicles'),
+      onPress: () => navigation.navigate('MyVehicles'),
+    },
+    {
+      icon: 'calendar-outline',
+      title: t('myBookings'),
+      onPress: () => navigation.navigate('PastBookings'),
+    },
+    {
+      icon: 'card-outline',
+      title: t('paymentMethods'),
+      onPress: () => navigation.navigate('PaymentMethods'),
+    },
+    {
+      icon: 'settings-outline',
+      title: t('settings'),
+      onPress: () => navigation.navigate('Settings'),
+    },
+    {
+      icon: 'information-circle-outline',
+      title: t('about'),
+      onPress: () => navigation.navigate('About'),
+    },
+  ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <Image 
-            source={{ uri: user.avatar }} 
-            style={styles.profileImage as any} 
-          />
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user.name}</Text>
-            <Text style={styles.profileEmail}>{user.email}</Text>
-            <Text style={styles.profilePhone}>{user.phone}</Text>
-          </View>
-          <TouchableOpacity style={styles.editProfileButton}>
-            <Ionicons name="create-outline" size={20} color={theme.colors.accent} />
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
+            {t('account')}
+          </Text>
         </View>
         
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.reservations}</Text>
-            <Text style={styles.statLabel}>Reservations</Text>
+        {/* Profile Section */}
+        <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.profileBlur}>
+          <View style={[styles.profileContainer, { backgroundColor: colors.surface }]}>
+            <Image 
+              source={require('../assets/images/avatar-placeholder.png')} 
+              style={styles.avatar}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={[styles.profileName, { color: colors.text.primary }]}>
+                {user.name}
+              </Text>
+              <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>
+                {user.email}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => navigation.navigate('EditProfile')}
+              >
+                <Text style={[styles.editButtonText, { color: colors.accent }]}>
+                  {t('edit')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.favoriteLocations}</Text>
-            <Text style={styles.statLabel}>Favorites</Text>
+        </BlurView>
+        
+        {/* Menu Items */}
+        <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
+          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={[
+                  styles.menuItem, 
+                  index < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.divider }
+                ]}
+                onPress={item.onPress}
+              >
+                <Ionicons name={item.icon as any} size={22} color={colors.accent} />
+                <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+                  {item.title}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+              </TouchableOpacity>
+            ))}
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.savedPayments}</Text>
-            <Text style={styles.statLabel}>Payment Cards</Text>
+        </BlurView>
+        
+        {/* Theme and Language Settings */}
+        <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
+          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+            {/* Theme Toggle */}
+            <View style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
+              <Ionicons name="moon-outline" size={22} color={colors.accent} />
+              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+                {t('darkMode')}
+              </Text>
+              <Switch
+                value={themeMode === 'dark'}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#767577', true: 'rgba(249, 178, 51, 0.4)' }}
+                thumbColor={themeMode === 'dark' ? colors.accent : '#f4f3f4'}
+              />
+            </View>
+            
+            {/* Language Selection */}
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={handleLanguageChange}
+            >
+              <Ionicons name="language-outline" size={22} color={colors.accent} />
+              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+                {t('language')}
+              </Text>
+              <Text style={[styles.languageText, { color: colors.text.secondary }]}>
+                {language === 'en' ? t('english') : t('arabic')}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
-        
-        {/* Account Settings */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
-          
-          <SettingItem
-            icon="person-outline"
-            title="Personal Information"
-            subtitle="Update your profile details"
-            onPress={() => console.log('Navigate to personal info')}
-          />
-          
-          <SettingItem
-            icon="card-outline"
-            title="Payment Methods"
-            subtitle={`${user.savedPayments} cards saved`}
-            onPress={() => console.log('Navigate to payment methods')}
-          />
-          
-          <SettingItem
-            icon="star-outline"
-            title="Favorite Locations"
-            subtitle={`${user.favoriteLocations} locations saved`}
-            onPress={() => console.log('Navigate to favorite locations')}
-          />
-          
-          <SettingItem
-            icon="document-text-outline"
-            title="Reservation History"
-            subtitle="View your past bookings"
-            onPress={() => console.log('Navigate to reservation history')}
-          />
-        </View>
-        
-        {/* App Settings */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <SettingItem
-            icon="notifications-outline"
-            title="Push Notifications"
-            subtitle="Reservation alerts and updates"
-            hasSwitch
-            switchValue={notificationsEnabled}
-            onSwitchChange={setNotificationsEnabled}
-          />
-          
-          <SettingItem
-            icon="location-outline"
-            title="Location Services"
-            subtitle="For nearby parking suggestions"
-            hasSwitch
-            switchValue={locationEnabled}
-            onSwitchChange={setLocationEnabled}
-          />
-          
-          <SettingItem
-            icon="finger-print-outline"
-            title="Biometric Authentication"
-            subtitle="Use Touch ID or Face ID to log in"
-            hasSwitch
-            switchValue={biometricEnabled}
-            onSwitchChange={setBiometricEnabled}
-          />
-          
-          <SettingItem
-            icon="moon-outline"
-            title="Dark Mode"
-            subtitle="Switch between light and dark themes"
-            hasSwitch
-            switchValue={darkModeEnabled}
-            onSwitchChange={setDarkModeEnabled}
-          />
-          
-          <SettingItem
-            icon="language-outline"
-            title="Language"
-            subtitle="English (US)"
-            onPress={() => console.log('Navigate to language settings')}
-          />
-        </View>
-        
-        {/* Support and About */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Support & About</Text>
-          
-          <SettingItem
-            icon="help-circle-outline"
-            title="Help & Support"
-            subtitle="FAQs and contact information"
-            onPress={() => console.log('Navigate to help & support')}
-          />
-          
-          <SettingItem
-            icon="information-circle-outline"
-            title="About"
-            subtitle="App version, terms & privacy policy"
-            onPress={() => console.log('Navigate to about')}
-          />
-        </View>
+        </BlurView>
         
         {/* Logout Button */}
-        <View style={styles.logoutContainer}>
+        <View style={styles.logoutButtonContainer}>
           <ActionButton
-            title="Log Out"
-            onPress={() => console.log('Log out')}
+            title={t('logOut')}
+            onPress={handleLogout}
+            isLoading={isLoading}
             variant="outline"
+            size="large"
           />
         </View>
-        
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
-        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    padding: 16,
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.md,
+  header: {
+    marginTop: 40,
+    marginBottom: 20,
+    alignItems: 'center',
   },
-  profileHeader: {
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  profileBlur: {
+    overflow: 'hidden',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  profileContainer: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    borderRadius: 16,
   },
-  profileImage: {
+  avatar: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    marginRight: theme.spacing.md,
+    marginRight: 16,
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: 2,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   profileEmail: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
-    marginBottom: 2,
+    fontSize: 14,
+    marginBottom: 8,
   },
-  profilePhone: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
+  editButton: {
+    alignSelf: 'flex-start',
   },
-  editProfileButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: `${theme.colors.accent}10`,
-    justifyContent: 'center',
-    alignItems: 'center',
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+  menuBlur: {
+    overflow: 'hidden',
+    borderRadius: 16,
+    marginBottom: 16,
   },
-  statItem: {
-    alignItems: 'center',
+  menuContainer: {
+    borderRadius: 16,
   },
-  statValue: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: theme.colors.accent,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.primary,
-  },
-  statDivider: {
-    width: 1,
-    height: '80%',
-    backgroundColor: theme.colors.divider,
-  },
-  sectionContainer: {
-    marginBottom: theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.sm,
-  },
-  settingItem: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    padding: 16,
   },
-  settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${theme.colors.accent}10`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  settingContent: {
+  menuItemText: {
+    fontSize: 16,
+    marginLeft: 12,
     flex: 1,
   },
-  settingTitle: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: '500',
-    color: theme.colors.text.primary,
-    marginBottom: 2,
+  languageText: {
+    fontSize: 14,
+    marginRight: 8,
   },
-  settingSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
-  },
-  logoutContainer: {
-    marginVertical: theme.spacing.lg,
-  },
-  versionContainer: {
-    alignItems: 'center',
-    marginBottom: theme.spacing.xl,
-  },
-  versionText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.primary,
+  logoutButtonContainer: {
+    marginVertical: 20,
   },
 });
 

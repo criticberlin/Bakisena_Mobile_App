@@ -1,0 +1,110 @@
+export const en = {
+  // Common
+  appName: 'Bakisena',
+  
+  // Auth screens
+  welcome: 'Welcome',
+  welcomeBack: 'Welcome Back',
+  signIn: 'Sign In',
+  signUp: 'Sign Up',
+  login: 'Login',
+  register: 'Register',
+  forgotPassword: 'Forgot Password?',
+  resetPassword: 'Reset Password',
+  email: 'Email',
+  password: 'Password',
+  confirmPassword: 'Confirm Password',
+  fullName: 'Full Name',
+  phoneNumber: 'Phone Number',
+  enterEmail: 'Enter your email',
+  enterPassword: 'Enter your password',
+  enterFullName: 'Enter your full name',
+  enterPhoneNumber: 'Enter your phone number',
+  dontHaveAccount: 'Don\'t have an account?',
+  alreadyHaveAccount: 'Already have an account?',
+  createAccount: 'Create Account',
+  
+  // Validation messages
+  invalidEmail: 'Please enter a valid email address',
+  passwordTooShort: 'Password must be at least 6 characters',
+  passwordsDontMatch: 'Passwords do not match',
+  fieldRequired: 'This field is required',
+  
+  // Dashboard
+  dashboard: 'Dashboard',
+  home: 'Home',
+  parking: 'Parking',
+  monitor: 'Monitor',
+  account: 'Account',
+  connected: 'Connected',
+  
+  // Parking
+  parkingStatus: 'Parking Status',
+  availableSlots: 'Available Slots',
+  occupiedSlots: 'Occupied Slots',
+  reservedSlots: 'Reserved Slots',
+  totalSlots: 'Total Slots',
+  
+  // Booking
+  bookParking: 'Book Parking',
+  selectLocation: 'Select Location',
+  selectSlot: 'Select Slot',
+  selectVehicle: 'Select Vehicle',
+  selectDateTime: 'Select Date & Time',
+  startDate: 'Start Date',
+  endDate: 'End Date',
+  duration: 'Duration',
+  totalCost: 'Total Cost',
+  confirmBooking: 'Confirm Booking',
+  
+  // Account
+  profile: 'Profile',
+  settings: 'Settings',
+  myBookings: 'My Bookings',
+  myVehicles: 'My Vehicles',
+  paymentMethods: 'Payment Methods',
+  logOut: 'Log Out',
+  darkMode: 'Dark Mode',
+  language: 'Language',
+  english: 'English',
+  arabic: 'Arabic',
+  confirmLogout: 'Are you sure you want to log out?',
+  languageChanged: 'Language Changed',
+  restartAppMessage: 'Please restart the app for the changes to take full effect',
+  ok: 'OK',
+  about: 'About Us',
+  
+  // Settings
+  appSettings: 'App Settings',
+  notifications: 'Notifications',
+  pushNotifications: 'Push Notifications',
+  notificationsDescription: 'Receive alerts about your bookings',
+  emailNotifications: 'Email Notifications',
+  emailNotificationsDescription: 'Receive email updates and receipts',
+  darkModeEnabled: 'Dark mode enabled',
+  lightModeEnabled: 'Light mode enabled',
+  aboutApp: 'About App',
+  version: 'Version',
+  termsOfService: 'Terms of Service',
+  privacyPolicy: 'Privacy Policy',
+  
+  // Admin
+  adminPanel: 'Admin Panel',
+  users: 'Users',
+  parkingLocations: 'Parking Locations',
+  parkingSlots: 'Parking Slots',
+  reports: 'Reports',
+  statistics: 'Statistics',
+  
+  // Actions
+  save: 'Save',
+  cancel: 'Cancel',
+  confirm: 'Confirm',
+  edit: 'Edit',
+  delete: 'Delete',
+  add: 'Add',
+  back: 'Back',
+  next: 'Next',
+  previous: 'Previous',
+  backToHome: 'Back to Home',
+}; 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -9,18 +9,21 @@ import PricesScreen from '../screens/PricesScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginOptionsScreen from '../screens/LoginOptionsScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { RootStackParamList } from '../types';
 import TabNavigator from './TabNavigator';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       initialRouteName="Onboarding"
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: theme.colors.background },
+        cardStyle: { backgroundColor: colors.background },
       }}
     >
       {/* Onboarding Screens */}
@@ -30,27 +33,30 @@ const AppNavigator = () => {
       {/* Authentication Screens */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={LoginScreen} />
+      
+      {/* Pricing Screens */}
       <Stack.Screen name="PricesPage" component={PricesScreen} />
       
       {/* Main Tab Navigation - After Authentication or As Guest */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
+      
+      {/* User Account Screens */}
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="EditProfile" component={SettingsScreen} />
+      <Stack.Screen name="MyVehicles" component={SettingsScreen} />
+      <Stack.Screen name="PaymentMethods" component={SettingsScreen} />
+      <Stack.Screen name="PastBookings" component={SettingsScreen} />
+      <Stack.Screen name="About" component={SettingsScreen} />
       
       {/* Legacy Authenticated User Screens */}
       <Stack.Screen name="UserDashboard" component={UserDashboardScreen} />
       
       {/* Admin Screens */}
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-      
-      {/* Other screens would be added here */}
-      {/* For example: */}
-      {/* <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> */}
-      {/* <Stack.Screen name="MakeReservation" component={MakeReservationScreen} /> */}
-      {/* <Stack.Screen name="PastBookings" component={PastBookingsScreen} /> */}
-      {/* <Stack.Screen name="EditProfile" component={EditProfileScreen} /> */}
-      
-      {/* <Stack.Screen name="SlotManagement" component={SlotManagementScreen} /> */}
-      {/* <Stack.Screen name="UserManagement" component={UserManagementScreen} /> */}
-      {/* <Stack.Screen name="Reports" component={ReportsScreen} /> */}
+      <Stack.Screen name="UserManagement" component={AdminDashboardScreen} />
+      <Stack.Screen name="SlotManagement" component={AdminDashboardScreen} />
+      <Stack.Screen name="Reports" component={AdminDashboardScreen} />
     </Stack.Navigator>
   );
 };

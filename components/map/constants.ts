@@ -90,20 +90,20 @@ export const cairoParkingSpots: ParkingSpot[] = [
 
 // Common colors
 export const COLORS = {
-  primary: '#1E3A8A', // Deep blue
-  secondary: '#F59E0B', // Amber
-  accent: '#3B82F6', // Sky blue
-  background: '#0F172A', // Very dark blue
-  card: '#1E293B', // Dark slate
-  text: '#F1F5F9', // Light gray
-  subtext: '#94A3B8', // Slate
-  reserved: '#F59E0B', // Amber/orange
-  available: '#FFD700', // Yellow
+  primary: '#1C1C3C', // Dark navy
+  secondary: '#2A2A4F', // Secondary dark
+  accent: '#F9B233', // Modern yellow-orange
+  background: '#1C1C3C', // Dark navy background
+  card: '#2A2A4F', // Secondary dark for cards
+  text: '#FFFFFF', // White
+  subtext: '#CCCCCC', // Light gray
+  reserved: '#F9B233', // Modern yellow-orange
+  available: '#CCCCCC', // Light gray for available spots
   white: '#FFFFFF',
   black: '#000000',
   shadow: '#000000',
-  success: '#10B981', // Emerald
-  error: '#EF4444', // Red
-  warning: '#F59E0B', // Amber
-  disabled: '#6B7280', // Gray
+  success: '#52C41A', // Modern success green
+  error: '#FF4D4F', // Modern error red
+  warning: '#FAAD14', // Modern warning amber
+  disabled: '#8E8E9F', // Medium gray
 }; 

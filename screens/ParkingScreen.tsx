@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ParkingMap } from '../components';
 import { ParkingSpot, cairoParkingSpots } from '../components/map/ParkingMap';
+import theme from '../theme/theme';
 
 const ParkingScreen: React.FC = () => {
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(cairoParkingSpots);
@@ -73,7 +74,7 @@ const ParkingScreen: React.FC = () => {
   }, [parkingSpots]);
   
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
       <ParkingMap 
         parkingSpots={parkingSpots}
@@ -93,7 +94,7 @@ const ParkingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', // Dark blue background
+    backgroundColor: theme.colors.background,
   },
 });
 

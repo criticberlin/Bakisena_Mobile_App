@@ -92,11 +92,10 @@ const LoginScreen: React.FC = () => {
             {/* App Logo */}
             <View style={styles.logoContainer}>
               <Image 
-                source={require('../assets/images/Logo_Only.png')}
+                source={require('../assets/images/Logo_With_Border.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={styles.appName}>bakisena</Text>
             </View>
             
             {/* Header */}
@@ -209,20 +208,13 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: theme.spacing['8'],
     flexDirection: 'row',
     justifyContent: 'center',
   },
   logo: {
-    width: 40,
-    height: 40,
-    marginRight: theme.spacing['2'],
-  },
-  appName: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: '700',
-    color: theme.colors.accent,
-    letterSpacing: 0.5,
+    width: 200,
+    height: 200,
+    alignItems: 'center',
   },
   header: {
     marginBottom: theme.spacing['8'],

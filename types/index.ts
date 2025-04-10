@@ -94,6 +94,10 @@ export type RootStackParamList = {
   UserManagement: undefined;
   Reports: undefined;
   MainTabs: undefined;
+  MyVehicles: undefined;
+  PaymentMethods: undefined;
+  Settings: undefined;
+  About: undefined;
 };
 
 // Component prop types
@@ -102,6 +106,8 @@ export interface ActionButtonProps {
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'outline';
   disabled?: boolean;
+  isLoading?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
 export interface ParkingStatusCardProps {
