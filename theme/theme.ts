@@ -42,6 +42,23 @@ const colors = {
       hint: '#8E8E9F',
     },
     divider: '#EAEAEA',
+    error: '#FF4D4F',
+  },
+  // Dark mode colors
+  dark: {
+    primary: '#1C1C3C',
+    secondary: '#FFFFFF',
+    accent: '#F9B233',
+    background: '#1C1C3C',
+    surface: '#2A2A4F',
+    text: {
+      primary: '#FFFFFF',
+      secondary: '#CCCCCC',
+      disabled: '#8E8E9F',
+      hint: '#A0A0B8',
+    },
+    divider: '#3A3A5C',
+    error: '#FF4D4F',
   }
 };
 

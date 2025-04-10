@@ -17,15 +17,21 @@ import { BlurView } from 'expo-blur';
 
 import ParkingStatusCard from '../components/home/ParkingStatusCard';
 import ActionButton from '../components/ActionButton';
+import AppLayout from '../components/layout/AppLayout';
 import { MOCK_LOCATIONS, MOCK_PRICING_PLANS } from '../constants/mockData';
 import { RootStackParamList } from '../types';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
 import { TabParamList } from '../navigation/TabNavigator';
+import theme from '../theme/theme';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList & TabParamList, 'Home'>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { colors, themeMode } = useTheme();
+  const { t, language } = useLanguage();
+  const isRTL = language === 'ar';
 
   // Show just top 3 locations for the home view
   const topLocations = MOCK_LOCATIONS.slice(0, 3);
@@ -34,11 +40,7 @@ const HomeScreen: React.FC = () => {
   const featuredPricingPlan = MOCK_PRICING_PLANS[0];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={theme.colors.background}
-      />
+    <AppLayout>
       <ScrollView 
         style={styles.container} 
         contentContainerStyle={styles.contentContainer}
@@ -46,8 +48,11 @@ const HomeScreen: React.FC = () => {
       >
         {/* Modern Header with Blur Effect */}
         <View style={styles.headerContainer}>
-          <BlurView intensity={30} tint="dark" style={styles.headerBlur}>
-            <View style={styles.header}>
+          <BlurView intensity={30} tint={themeMode === 'dark' ? "dark" : "light"} style={styles.headerBlur}>
+            <View style={[
+              styles.header,
+              { flexDirection: isRTL ? 'row-reverse' : 'row' }
+            ]}>
               <View style={styles.logoContainer}>
                 <Image 
                   source={require('../assets/images/Logo_With_Border.png')}
@@ -70,61 +75,115 @@ const HomeScreen: React.FC = () => {
         </View>
 
         {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>Smart Parking</Text>
-          <Text style={styles.heroSubtitle}>Made Simple</Text>
-          <Text style={styles.heroDescription}>
-            Find and reserve parking spaces in real-time. Save time and enjoy seamless
-            parking management.
+        <View style={[
+          styles.heroSection,
+          { alignItems: isRTL ? 'flex-end' : 'flex-start' }
+        ]}>
+          <Text style={[
+            styles.heroTitle,
+            { color: colors.text.primary, textAlign: isRTL ? 'right' : 'left' }
+          ]}>{t('smartParking')}</Text>
+          <Text style={[
+            styles.heroSubtitle,
+            { color: colors.text.primary, textAlign: isRTL ? 'right' : 'left' }
+          ]}>{t('madeSimple')}</Text>
+          <Text style={[
+            styles.heroDescription,
+            { color: colors.text.secondary, textAlign: isRTL ? 'right' : 'left' }
+          ]}>
+            {t('homeDescription')}
           </Text>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <TouchableOpacity 
-            style={styles.quickActionItem} 
+            style={[
+              styles.quickActionItem,
+              { backgroundColor: colors.surface }
+            ]} 
             onPress={() => navigation.navigate('Parking')}
             activeOpacity={0.8}
           >
-            <View style={styles.quickActionIcon}>
-              <Ionicons name="car" size={26} color={theme.colors.accent} />
+            <View style={[
+              styles.quickActionIcon,
+              { backgroundColor: colors.accent + '20' }
+            ]}>
+              <Ionicons name="car" size={26} color={colors.accent} />
             </View>
-            <Text style={styles.quickActionText}>Find Spot</Text>
+            <Text style={[
+              styles.quickActionText,
+              { color: colors.text.primary }
+            ]}>{t('findSpot')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.quickActionItem} 
+            style={[
+              styles.quickActionItem,
+              { backgroundColor: colors.surface }
+            ]} 
             onPress={() => navigation.navigate('Monitor')}
             activeOpacity={0.8}
           >
-            <View style={styles.quickActionIcon}>
-              <Ionicons name="time" size={26} color={theme.colors.accent} />
+            <View style={[
+              styles.quickActionIcon,
+              { backgroundColor: colors.accent + '20' }
+            ]}>
+              <Ionicons name="time" size={26} color={colors.accent} />
             </View>
-            <Text style={styles.quickActionText}>Book Now</Text>
+            <Text style={[
+              styles.quickActionText,
+              { color: colors.text.primary }
+            ]}>{t('bookNow')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.quickActionItem} 
+            style={[
+              styles.quickActionItem,
+              { backgroundColor: colors.surface }
+            ]} 
             onPress={() => navigation.navigate('Connected')}
             activeOpacity={0.8}
           >
-            <View style={styles.quickActionIcon}>
-              <Ionicons name="map" size={26} color={theme.colors.accent} />
+            <View style={[
+              styles.quickActionIcon,
+              { backgroundColor: colors.accent + '20' }
+            ]}>
+              <Ionicons name="map" size={26} color={colors.accent} />
             </View>
-            <Text style={styles.quickActionText}>Navigate</Text>
+            <Text style={[
+              styles.quickActionText,
+              { color: colors.text.primary }
+            ]}>{t('navigate')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Dynamic Slot Status */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Real-time Availability</Text>
+        <View style={[
+          styles.sectionHeader,
+          { flexDirection: isRTL ? 'row-reverse' : 'row' }
+        ]}>
+          <Text style={[
+            styles.sectionTitle,
+            { color: colors.text.primary }
+          ]}>{t('realTimeAvailability')}</Text>
           <TouchableOpacity 
             onPress={() => navigation.navigate('Parking')}
             activeOpacity={0.7}
-            style={styles.viewAllButton}
+            style={[
+              styles.viewAllButton,
+              { flexDirection: isRTL ? 'row-reverse' : 'row' }
+            ]}
           >
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.accent} />
+            <Text style={[
+              styles.viewAllText,
+              { color: colors.accent, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }
+            ]}>{t('viewAll')}</Text>
+            <Ionicons 
+              name={isRTL ? "chevron-back" : "chevron-forward"} 
+              size={16} 
+              color={colors.accent} 
+            />
           </TouchableOpacity>
         </View>
 
@@ -143,33 +202,76 @@ const HomeScreen: React.FC = () => {
         </View>
 
         {/* Pricing Overview */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pricing Overview</Text>
+        <View style={[
+          styles.sectionHeader,
+          { flexDirection: isRTL ? 'row-reverse' : 'row' }
+        ]}>
+          <Text style={[
+            styles.sectionTitle,
+            { color: colors.text.primary }
+          ]}>{t('pricingOverview')}</Text>
           <TouchableOpacity 
             onPress={() => navigation.navigate('PricesPage')}
             activeOpacity={0.7}
-            style={styles.viewAllButton}
+            style={[
+              styles.viewAllButton,
+              { flexDirection: isRTL ? 'row-reverse' : 'row' }
+            ]}
           >
-            <Text style={styles.viewAllText}>Details</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.accent} />
+            <Text style={[
+              styles.viewAllText,
+              { color: colors.accent, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }
+            ]}>{t('details')}</Text>
+            <Ionicons 
+              name={isRTL ? "chevron-back" : "chevron-forward"} 
+              size={16} 
+              color={colors.accent} 
+            />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.pricingOverview}>
+        <View style={[
+          styles.pricingOverview,
+          { backgroundColor: colors.surface }
+        ]}>
           <View style={styles.pricingRow}>
             <View style={styles.pricingItem}>
-              <Text style={styles.pricingValue}>LE {featuredPricingPlan.hourlyRate}</Text>
-              <Text style={styles.pricingLabel}>per hour</Text>
+              <Text style={[
+                styles.pricingValue,
+                { color: colors.text.primary }
+              ]}>LE {featuredPricingPlan.hourlyRate}</Text>
+              <Text style={[
+                styles.pricingLabel,
+                { color: colors.text.secondary }
+              ]}>{t('perHour')}</Text>
             </View>
-            <View style={styles.pricingDivider} />
+            <View style={[
+              styles.pricingDivider,
+              { backgroundColor: colors.divider }
+            ]} />
             <View style={styles.pricingItem}>
-              <Text style={styles.pricingValue}>LE {featuredPricingPlan.dailyRate}</Text>
-              <Text style={styles.pricingLabel}>per day</Text>
+              <Text style={[
+                styles.pricingValue,
+                { color: colors.text.primary }
+              ]}>LE {featuredPricingPlan.dailyRate}</Text>
+              <Text style={[
+                styles.pricingLabel,
+                { color: colors.text.secondary }
+              ]}>{t('perDay')}</Text>
             </View>
-            <View style={styles.pricingDivider} />
+            <View style={[
+              styles.pricingDivider,
+              { backgroundColor: colors.divider }
+            ]} />
             <View style={styles.pricingItem}>
-              <Text style={styles.pricingValue}>LE {featuredPricingPlan.monthlyRate}</Text>
-              <Text style={styles.pricingLabel}>per month</Text>
+              <Text style={[
+                styles.pricingValue,
+                { color: colors.text.primary }
+              ]}>LE {featuredPricingPlan.monthlyRate}</Text>
+              <Text style={[
+                styles.pricingLabel,
+                { color: colors.text.secondary }
+              ]}>{t('perMonth')}</Text>
             </View>
           </View>
         </View>
@@ -177,34 +279,29 @@ const HomeScreen: React.FC = () => {
         {/* Call-to-Action Buttons */}
         <View style={styles.ctaContainer}>
           <ActionButton 
-            title="Login" 
+            title={t('login')} 
             onPress={() => navigation.navigate('Login')}
             style={styles.ctaButton}
             size="large"
             icon={<Ionicons name="log-in-outline" size={22} color="white" />}
-            iconPosition="left"
+            iconPosition={isRTL ? "right" : "left"}
           />
           <ActionButton 
-            title="Register" 
+            title={t('register')} 
             variant="outline"
             onPress={() => navigation.navigate('Register')}
             style={styles.ctaButton}
             size="large"
-            icon={<Ionicons name="person-add-outline" size={22} color={theme.colors.accent} />}
-            iconPosition="left"
+            icon={<Ionicons name="person-add-outline" size={22} color={colors.accent} />}
+            iconPosition={isRTL ? "right" : "left"}
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

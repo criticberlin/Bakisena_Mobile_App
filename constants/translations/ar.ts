@@ -56,6 +56,13 @@ export const ar = {
   duration: 'المدة',
   totalCost: 'التكلفة الإجمالية',
   confirmBooking: 'تأكيد الحجز',
+  bookingId: 'رقم الحجز',
+  noBookings: 'ليس لديك حجوزات حتى الآن',
+  all: 'الكل',
+  active: 'نشط',
+  completed: 'مكتمل',
+  cancelled: 'ملغي',
+  receipt: 'إيصال',
   
   // Account
   profile: 'الملف الشخصي',
@@ -107,4 +114,46 @@ export const ar = {
   next: 'التالي',
   previous: 'السابق',
   backToHome: 'العودة إلى الرئيسية',
+  
+  // About Screen
+  appDescription: 'بكيسنا هو حل حديث لمواقف السيارات مصمم لجعل البحث وحجز مواقف السيارات بسيطًا وفعالًا.',
+  developer: 'المطور',
+  developerInfo: 'فريق بكيسنا للجوال',
+  contact: 'اتصل بنا',
+  allRightsReserved: 'جميع الحقوق محفوظة',
+  
+  // My Vehicles Screen
+  noVehicles: 'ليس لديك سيارات مضافة حتى الآن.',
+  addVehicle: 'إضافة سيارة',
+  deleteVehicle: 'حذف السيارة',
+  deleteVehicleConfirmation: 'هل أنت متأكد أنك تريد حذف هذه السيارة؟',
+  car: 'سيارة',
+  motorcycle: 'دراجة نارية',
+  truck: 'شاحنة',
+  other: 'أخرى',
+  
+  // Payment Methods Screen
+  noPaymentMethods: 'ليس لديك طرق دفع مضافة حتى الآن.',
+  addPaymentMethod: 'إضافة طريقة دفع',
+  deletePaymentMethod: 'حذف طريقة الدفع',
+  deletePaymentMethodConfirmation: 'هل أنت متأكد أنك تريد حذف طريقة الدفع هذه؟',
+  default: 'افتراضي',
+  setDefault: 'تعيين كافتراضي',
+  cannotDelete: 'لا يمكن الحذف',
+  cannotDeleteDefaultPayment: 'لا يمكنك حذف طريقة الدفع الافتراضية. يرجى تعيين طريقة أخرى كافتراضية أولاً.',
+  
+  // Home Screen
+  smartParking: 'مواقف ذكية',
+  madeSimple: 'بطريقة سهلة',
+  homeDescription: 'ابحث واحجز مساحات وقوف السيارات في الوقت الحقيقي. وفر الوقت واستمتع بإدارة سلسة لمواقف السيارات.',
+  findSpot: 'البحث عن موقف',
+  bookNow: 'احجز الآن',
+  navigate: 'تنقل',
+  realTimeAvailability: 'التوفر في الوقت الحقيقي',
+  viewAll: 'عرض الكل',
+  pricingOverview: 'نظرة عامة على الأسعار',
+  details: 'التفاصيل',
+  perHour: 'في الساعة',
+  perDay: 'في اليوم',
+  perMonth: 'في الشهر',
 }; 

@@ -10,6 +10,10 @@ import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginOptionsScreen from '../screens/LoginOptionsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AboutScreen from '../screens/AboutScreen';
+import MyVehiclesScreen from '../screens/MyVehiclesScreen';
+import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
+import PastBookingsScreen from '../screens/PastBookingsScreen';
 import { RootStackParamList } from '../types';
 import TabNavigator from './TabNavigator';
 
@@ -44,10 +48,10 @@ const AppNavigator = () => {
       {/* User Account Screens */}
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={SettingsScreen} />
-      <Stack.Screen name="MyVehicles" component={SettingsScreen} />
-      <Stack.Screen name="PaymentMethods" component={SettingsScreen} />
-      <Stack.Screen name="PastBookings" component={SettingsScreen} />
-      <Stack.Screen name="About" component={SettingsScreen} />
+      <Stack.Screen name="MyVehicles" component={MyVehiclesScreen} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="PastBookings" component={PastBookingsScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
       
       {/* Legacy Authenticated User Screens */}
       <Stack.Screen name="UserDashboard" component={UserDashboardScreen} />

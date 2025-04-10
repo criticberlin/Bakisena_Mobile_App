@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import theme from '../theme/theme';
+import AppLayout from '../components/layout/AppLayout';
 
 type OnboardingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -37,21 +38,16 @@ const OnboardingScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <AppLayout>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FDC200" />
         </View>
-      </SafeAreaView>
+      </AppLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={theme.colors.background}
-      />
-      
+    <AppLayout>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.headerContainer}>
@@ -112,7 +108,7 @@ const OnboardingScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 

@@ -16,12 +16,13 @@ import { BlurView } from 'expo-blur';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import AppLayout from '../components/layout/AppLayout';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
-  const { themeMode, toggleTheme, colors } = useTheme();
+  const { themeMode, toggleTheme, colors, switchStyles } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
   const handleLanguageChange = async () => {
@@ -39,7 +40,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <AppLayout>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -79,8 +80,9 @@ const SettingsScreen: React.FC = () => {
               <Switch
                 value={themeMode === 'dark'}
                 onValueChange={toggleTheme}
-                trackColor={{ false: '#767577', true: 'rgba(249, 178, 51, 0.4)' }}
-                thumbColor={themeMode === 'dark' ? colors.accent : '#f4f3f4'}
+                trackColor={switchStyles.trackColor}
+                thumbColor={switchStyles.thumbColor(themeMode === 'dark')}
+                ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
             </View>
             
@@ -123,8 +125,9 @@ const SettingsScreen: React.FC = () => {
               </View>
               <Switch
                 value={true}
-                trackColor={{ false: '#767577', true: 'rgba(249, 178, 51, 0.4)' }}
-                thumbColor={true ? colors.accent : '#f4f3f4'}
+                trackColor={switchStyles.trackColor}
+                thumbColor={switchStyles.thumbColor(true)}
+                ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
             </View>
             
@@ -141,8 +144,9 @@ const SettingsScreen: React.FC = () => {
               </View>
               <Switch
                 value={true}
-                trackColor={{ false: '#767577', true: 'rgba(249, 178, 51, 0.4)' }}
-                thumbColor={true ? colors.accent : '#f4f3f4'}
+                trackColor={switchStyles.trackColor}
+                thumbColor={switchStyles.thumbColor(true)}
+                ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
             </View>
           </View>
@@ -194,7 +198,7 @@ const SettingsScreen: React.FC = () => {
           </View>
         </BlurView>
       </ScrollView>
-    </View>
+    </AppLayout>
   );
 };
 

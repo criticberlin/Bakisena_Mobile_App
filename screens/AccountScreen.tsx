@@ -19,12 +19,13 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import ActionButton from '../components/ActionButton';
 import { MOCK_USERS } from '../constants/mockData';
+import AppLayout from '../components/layout/AppLayout';
 
 type AccountScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<AccountScreenNavigationProp>();
-  const { themeMode, toggleTheme, colors } = useTheme();
+  const { themeMode, toggleTheme, colors, switchStyles } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   
   // Mock logged in user
@@ -116,8 +117,11 @@ const AccountScreen: React.FC = () => {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <AppLayout>
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
@@ -185,8 +189,9 @@ const AccountScreen: React.FC = () => {
               <Switch
                 value={themeMode === 'dark'}
                 onValueChange={toggleTheme}
-                trackColor={{ false: '#767577', true: 'rgba(249, 178, 51, 0.4)' }}
-                thumbColor={themeMode === 'dark' ? colors.accent : '#f4f3f4'}
+                trackColor={switchStyles.trackColor}
+                thumbColor={switchStyles.thumbColor(themeMode === 'dark')}
+                ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
             </View>
             
@@ -217,7 +222,7 @@ const AccountScreen: React.FC = () => {
           />
         </View>
       </ScrollView>
-    </View>
+    </AppLayout>
   );
 };
 

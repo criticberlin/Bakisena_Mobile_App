@@ -17,6 +17,7 @@ import ReservationCard from '../components/dashboard/ReservationCard';
 import { RootStackParamList } from '../types';
 import theme from '../theme/theme';
 import { MOCK_RESERVATIONS, MOCK_USERS } from '../constants/mockData';
+import AppLayout from '../components/layout/AppLayout';
 
 type UserDashboardScreenNavigationProp = StackNavigationProp<RootStackParamList, 'UserDashboard'>;
 
@@ -39,11 +40,7 @@ const UserDashboardScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={theme.colors.background}
-      />
+    <AppLayout>
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -54,7 +51,11 @@ const UserDashboardScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -160,16 +161,11 @@ const UserDashboardScreen: React.FC = () => {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

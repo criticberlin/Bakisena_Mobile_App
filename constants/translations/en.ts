@@ -56,6 +56,13 @@ export const en = {
   duration: 'Duration',
   totalCost: 'Total Cost',
   confirmBooking: 'Confirm Booking',
+  bookingId: 'Booking ID',
+  noBookings: 'You have no bookings yet.',
+  all: 'All',
+  active: 'Active',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  receipt: 'Receipt',
   
   // Account
   profile: 'Profile',
@@ -107,4 +114,46 @@ export const en = {
   next: 'Next',
   previous: 'Previous',
   backToHome: 'Back to Home',
+  
+  // About Screen
+  appDescription: 'Bakisena is a modern parking solution designed to make finding and booking parking spots simple and efficient.',
+  developer: 'Developer',
+  developerInfo: 'Bakisena Mobile Team',
+  contact: 'Contact Us',
+  allRightsReserved: 'All Rights Reserved',
+  
+  // My Vehicles Screen
+  noVehicles: 'You have no vehicles added yet.',
+  addVehicle: 'Add Vehicle',
+  deleteVehicle: 'Delete Vehicle',
+  deleteVehicleConfirmation: 'Are you sure you want to delete this vehicle?',
+  car: 'Car',
+  motorcycle: 'Motorcycle',
+  truck: 'Truck',
+  other: 'Other',
+  
+  // Payment Methods Screen
+  noPaymentMethods: 'You have no payment methods added yet.',
+  addPaymentMethod: 'Add Payment Method',
+  deletePaymentMethod: 'Delete Payment Method',
+  deletePaymentMethodConfirmation: 'Are you sure you want to delete this payment method?',
+  default: 'Default',
+  setDefault: 'Set as Default',
+  cannotDelete: 'Cannot Delete',
+  cannotDeleteDefaultPayment: 'You cannot delete your default payment method. Please set another method as default first.',
+  
+  // Home Screen
+  smartParking: 'Smart Parking',
+  madeSimple: 'Made Simple',
+  homeDescription: 'Find and reserve parking spaces in real-time. Save time and enjoy seamless parking management.',
+  findSpot: 'Find Spot',
+  bookNow: 'Book Now',
+  navigate: 'Navigate',
+  realTimeAvailability: 'Real-time Availability',
+  viewAll: 'View All',
+  pricingOverview: 'Pricing Overview',
+  details: 'Details',
+  perHour: 'per hour',
+  perDay: 'per day',
+  perMonth: 'per month',
 }; 

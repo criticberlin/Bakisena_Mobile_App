@@ -16,6 +16,7 @@ import ActionButton from '../components/ActionButton';
 import { RootStackParamList } from '../types';
 import theme from '../theme/theme';
 import { MOCK_LOCATIONS, MOCK_SLOTS, MOCK_USERS } from '../constants/mockData';
+import AppLayout from '../components/layout/AppLayout';
 
 type AdminDashboardScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AdminDashboard'>;
 
@@ -51,11 +52,7 @@ const AdminDashboardScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={theme.colors.background}
-      />
+    <AppLayout>
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Admin Panel</Text>
@@ -66,7 +63,11 @@ const AdminDashboardScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Dashboard Overview */}
         <View style={styles.dashboardSection}>
           <Text style={styles.sectionTitle}>Dashboard Overview</Text>
@@ -224,7 +225,7 @@ const AdminDashboardScreen: React.FC = () => {
           })}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 
