@@ -1,12 +1,15 @@
-import React, { ReactNode } from 'react';
-import { View, StyleSheet, ViewStyle, StatusBar } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
-import { useLanguage } from '../../constants/translations/LanguageContext';
+import React from 'react';
+import { StyleSheet, SafeAreaView, ViewStyle, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { AppThemeWrapper } from '../../theme';
 
 interface AppLayoutProps {
-  children: ReactNode;
-  style?: ViewStyle | ViewStyle[];
-  skipStatusBar?: boolean;
+  children: React.ReactNode;
+  style?: ViewStyle;
+  scrollable?: boolean;
+  containerType?: 'view' | 'screen' | 'surface' | 'card';
+  paddingHorizontal?: number;
+  paddingVertical?: number;
+  keyboardAvoiding?: boolean;
 }
 
 /**
@@ -15,38 +18,78 @@ interface AppLayoutProps {
  * Use this component to wrap your screens to ensure consistent styling, RTL support,
  * and theme application across the entire app.
  */
-const AppLayout: React.FC<AppLayoutProps> = ({ children, style, skipStatusBar = false }) => {
-  const { colors, themeMode } = useTheme();
-  const { language } = useLanguage();
+const AppLayout: React.FC<AppLayoutProps> = ({
+  children,
+  style,
+  scrollable = false,
+  containerType = 'screen',
+  paddingHorizontal = 16,
+  paddingVertical = 0,
+  keyboardAvoiding = true,
+}) => {
+  const padding = {
+    paddingHorizontal,
+    paddingVertical,
+  };
   
-  const isRTL = language === 'ar';
+  const Content = () => (
+    <AppThemeWrapper 
+      containerType={containerType}
+      style={[styles.container, padding, style]}
+    >
+      {children}
+    </AppThemeWrapper>
+  );
+  
+  // Wrap with scrollview if scrollable is true
+  const ContentWithScroll = () => (
+    <ScrollView
+      style={[styles.scrollView, { paddingHorizontal: 0 }]}
+      contentContainerStyle={{ paddingHorizontal, paddingVertical }}
+      showsVerticalScrollIndicator={false}
+    >
+      <AppThemeWrapper 
+        containerType={containerType}
+        style={[styles.container, { padding: 0 }, style]}
+      >
+        {children}
+      </AppThemeWrapper>
+    </ScrollView>
+  );
+  
+  // Use KeyboardAvoidingView on iOS
+  if (keyboardAvoiding && Platform.OS === 'ios') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView 
+          style={styles.keyboardAvoid} 
+          behavior="padding"
+        >
+          {scrollable ? <ContentWithScroll /> : <Content />}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
   
   return (
-    <View 
-      style={[
-        styles.container, 
-        { backgroundColor: colors.background },
-        isRTL && styles.rtlContainer, 
-        style
-      ]}
-    >
-      {!skipStatusBar && (
-        <StatusBar
-          barStyle={themeMode === 'dark' ? "light-content" : "dark-content"}
-          backgroundColor={colors.background}
-        />
-      )}
-      {children}
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      {scrollable ? <ContentWithScroll /> : <Content />}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
-  rtlContainer: {
-    direction: 'rtl',
+  scrollView: {
+    flex: 1,
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
 });
 

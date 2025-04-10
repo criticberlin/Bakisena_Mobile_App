@@ -14,6 +14,12 @@ interface ThemeContextProps {
     thumbColor: (value: boolean) => string;
     ios_backgroundColor?: string;
   };
+  // Add these global style getters
+  getTextStyle: (additionalStyles?: any) => any;
+  getViewStyle: (additionalStyles?: any) => any;
+  getInputStyle: (additionalStyles?: any) => any;
+  getButtonStyle: (additionalStyles?: any) => any;
+  getImageStyle: (additionalStyles?: any) => any;
 }
 
 const ThemeContext = createContext<ThemeContextProps>({
@@ -23,7 +29,12 @@ const ThemeContext = createContext<ThemeContextProps>({
   switchStyles: {
     trackColor: { false: '#767577', true: 'rgba(249, 178, 51, 0.4)' },
     thumbColor: (value) => value ? theme.colors.accent : '#f4f3f4',
-  }
+  },
+  getTextStyle: () => ({}),
+  getViewStyle: () => ({}),
+  getInputStyle: () => ({}),
+  getButtonStyle: () => ({}),
+  getImageStyle: () => ({}),
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -119,11 +130,61 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   };
 
+  // Global style helpers
+  const colors = getThemeColors();
+  
+  // Text style getter
+  const getTextStyle = (additionalStyles = {}) => {
+    return {
+      color: colors.text.primary,
+      ...additionalStyles,
+    };
+  };
+  
+  // View style getter
+  const getViewStyle = (additionalStyles = {}) => {
+    return {
+      backgroundColor: 'transparent',
+      ...additionalStyles,
+    };
+  };
+  
+  // Input style getter
+  const getInputStyle = (additionalStyles = {}) => {
+    return {
+      color: colors.text.primary,
+      backgroundColor: colors.surface,
+      borderColor: colors.divider,
+      placeholderTextColor: colors.text.hint,
+      ...additionalStyles,
+    };
+  };
+  
+  // Button style getter
+  const getButtonStyle = (additionalStyles = {}) => {
+    return {
+      backgroundColor: colors.accent,
+      ...additionalStyles,
+    };
+  };
+  
+  // Image style getter
+  const getImageStyle = (additionalStyles = {}) => {
+    return {
+      ...additionalStyles,
+    };
+  };
+
   const contextValue = {
     themeMode,
     toggleTheme,
     colors: getThemeColors(),
     switchStyles: getSwitchStyles(),
+    getTextStyle,
+    getViewStyle,
+    getInputStyle,
+    getButtonStyle,
+    getImageStyle,
   };
 
   return (

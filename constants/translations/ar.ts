@@ -36,7 +36,7 @@ export const ar = {
   parking: 'وقوف السيارات',
   monitor: 'مراقبة',
   account: 'الحساب',
-  connected: 'متصل',
+  connected: 'الاتصال',
   
   // Parking
   parkingStatus: 'حالة مواقف السيارات',

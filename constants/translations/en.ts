@@ -36,7 +36,7 @@ export const en = {
   parking: 'Parking',
   monitor: 'Monitor',
   account: 'Account',
-  connected: 'Connected',
+  connected: 'Connection',
   
   // Parking
   parkingStatus: 'Parking Status',

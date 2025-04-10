@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   TouchableOpacity, 
-  Text, 
   StyleSheet, 
   ActivityIndicator,
   ViewStyle,
@@ -9,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { ActionButtonProps } from '../types';
-import theme from '../theme/theme';
+import { useTheme, AppTextWrapper } from '../theme';
 
 interface ExtendedActionButtonProps extends ActionButtonProps {
   isLoading?: boolean;
@@ -18,10 +17,12 @@ interface ExtendedActionButtonProps extends ActionButtonProps {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   size?: 'small' | 'medium' | 'large';
+  textKey?: string; // Add support for translation key
 }
 
 const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   title,
+  textKey,
   onPress,
   variant = 'primary',
   disabled = false,
@@ -32,6 +33,8 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   iconPosition = 'left',
   size = 'medium'
 }) => {
+  const { colors } = useTheme();
+  
   // Define button style based on variant and size
   const buttonStyle: ViewStyle = {
     ...styles.button,
@@ -59,8 +62,8 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   };
 
   const loadingColor = variant === 'outline' 
-    ? theme.colors.accent 
-    : (variant === 'secondary' ? theme.colors.primary : theme.colors.secondary);
+    ? colors.accent 
+    : (variant === 'secondary' ? colors.primary : colors.secondary);
 
   return (
     <TouchableOpacity
@@ -79,7 +82,13 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
           {icon && iconPosition === 'left' && (
             <View style={styles.iconLeft}>{icon}</View>
           )}
-          <Text style={textStyleFinal}>{title}</Text>
+          <AppTextWrapper 
+            variant="button" 
+            style={textStyleFinal}
+            textKey={textKey as any}
+          >
+            {title}
+          </AppTextWrapper>
           {icon && iconPosition === 'right' && (
             <View style={styles.iconRight}>{icon}</View>
           )}
@@ -91,25 +100,29 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: theme.borders.radius['2xl'],
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    ...theme.shadows.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.0,
+    elevation: 4,
   },
   smallButton: {
-    paddingVertical: theme.spacing['2'],
-    paddingHorizontal: theme.spacing['4'],
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     minWidth: 80,
   },
   mediumButton: {
-    paddingVertical: theme.spacing['3'],
-    paddingHorizontal: theme.spacing['5'],
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     minWidth: 120,
   },
   largeButton: {
-    paddingVertical: theme.spacing['4'],
-    paddingHorizontal: theme.spacing['6'],
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     minWidth: 160,
   },
   contentContainer: {
@@ -118,20 +131,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: '#F9B233', // Will be overridden by theme
   },
   secondaryButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#FFFFFF', // Will be overridden by theme
   },
   outlineButton: {
     backgroundColor: 'transparent',
-    borderWidth: theme.borders.width.thin,
-    borderColor: theme.colors.accent,
+    borderWidth: 1,
+    borderColor: '#F9B233', // Will be overridden by theme
   },
   disabledButton: {
-    backgroundColor: theme.colors.text.disabled,
+    backgroundColor: '#8E8E9F',
     opacity: 0.7,
-    ...theme.shadows.none,
+    shadowOpacity: 0,
   },
   text: {
     fontWeight: '600' as const, // Use string literal for fontWeight
@@ -139,31 +152,31 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   smallText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 14,
   },
   mediumText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 16,
   },
   largeText: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 18,
   },
   primaryText: {
-    color: theme.colors.secondary,
+    color: '#FFFFFF', // Will be overridden by theme
   },
   secondaryText: {
-    color: theme.colors.primary,
+    color: '#1C1C3C', // Will be overridden by theme
   },
   outlineText: {
-    color: theme.colors.accent,
+    color: '#F9B233', // Will be overridden by theme
   },
   disabledText: {
-    color: theme.colors.text.hint,
+    color: '#A0A0B8',
   },
   iconLeft: {
-    marginRight: theme.spacing['2'],
+    marginRight: 8,
   },
   iconRight: {
-    marginLeft: theme.spacing['2'],
+    marginLeft: 8,
   },
 });
 

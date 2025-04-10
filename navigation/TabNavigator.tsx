@@ -59,7 +59,7 @@ const TabNavigator = () => {
           } else if (route.name === 'Parking') {
             iconName = focused ? 'car' : 'car-outline';
           } else if (route.name === 'Connected') {
-            iconName = focused ? 'bluetooth' : 'bluetooth-outline';
+            iconName = focused ? 'planet' : 'planet-outline';
           } else if (route.name === 'Account') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -69,7 +69,11 @@ const TabNavigator = () => {
               <Animated.View 
                 style={[
                   styles.iconCircle,
-                  {backgroundColor: focused ? 'rgba(249, 178, 51, 0.2)' : 'transparent'}
+                  {
+                    backgroundColor: focused ? 
+                      `${colors.accent}30` : 
+                      themeMode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+                  }
                 ]}
               >
                 <Ionicons 
@@ -78,7 +82,7 @@ const TabNavigator = () => {
                   color={color} 
                 />
               </Animated.View>
-              {focused && <View style={styles.activeIndicator} />}
+              {focused && <View style={[styles.activeIndicator, { backgroundColor: colors.accent }]} />}
             </View>
           );
         },
@@ -91,28 +95,36 @@ const TabNavigator = () => {
           height: 70 + (Platform.OS === 'ios' ? insets.bottom : 10),
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
           paddingTop: 10,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: -8 },
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          elevation: 24,
+          shadowOffset: { width: 0, height: -5 },
+          shadowOpacity: 0.2,
+          shadowRadius: 15,
+          elevation: 25,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 5,
           marginBottom: 4,
+          fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
         },
         tabBarItemStyle: {
           paddingVertical: 6,
         },
         tabBarBackground: () => (
           <BlurView 
-            intensity={30} 
+            intensity={40} 
             tint={themeMode === 'dark' ? "dark" : "light"} 
-            style={StyleSheet.absoluteFill}
+            style={[
+              StyleSheet.absoluteFill, 
+              { 
+                borderTopLeftRadius: 28, 
+                borderTopRightRadius: 28,
+                overflow: 'hidden'
+              }
+            ]}
           />
         ),
       })}
@@ -154,19 +166,18 @@ const styles = StyleSheet.create({
     height: 48,
   },
   iconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeIndicator: {
     position: 'absolute',
     bottom: -2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(249, 178, 51, 1)',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
 });
 
