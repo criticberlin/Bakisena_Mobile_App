@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import theme from '../theme/theme';
+import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import ActionButton from '../components/ActionButton';
+import AppLayout from '../components/layout/AppLayout';
+import { useLanguage } from '../constants/translations/LanguageContext';
 
 interface ConnectedDevice {
   id: string;
@@ -58,8 +59,13 @@ const mockDevices: ConnectedDevice[] = [
 ];
 
 const ConnectedScreen = () => {
+  const { themeMode, colors, switchStyles } = useTheme();
+  const { t, isRTL } = useLanguage();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
   const [devices, setDevices] = useState<ConnectedDevice[]>(mockDevices);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const getDeviceIcon = (type: string) => {
     switch (type) {
@@ -88,37 +94,54 @@ const ConnectedScreen = () => {
   });
 
   const DeviceCard = ({ device }: { device: ConnectedDevice }) => (
-    <View style={styles.deviceCard}>
-      <View style={styles.deviceIconContainer}>
+    <View style={[styles.deviceCard, { backgroundColor: currentColors.surface }]}>
+      <View style={[
+        styles.deviceIconContainer, 
+        { 
+          backgroundColor: `${currentColors.accent}10`,
+          marginRight: isRTL ? 0 : 16,
+          marginLeft: isRTL ? 16 : 0
+        }
+      ]}>
         <Ionicons 
           name={getDeviceIcon(device.type) as any} 
           size={24} 
-          color={device.isActive ? theme.colors.accent : theme.colors.text.primary}
+          color={device.isActive ? currentColors.accent : currentColors.text.primary}
         />
       </View>
       
       <View style={styles.deviceInfo}>
-        <Text style={styles.deviceName}>{device.name}</Text>
-        <View style={styles.deviceStatus}>
+        <Text style={[styles.deviceName, { color: currentColors.text.primary }]}>{device.name}</Text>
+        <View style={[styles.deviceStatus, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <View style={[
             styles.statusIndicator, 
-            { backgroundColor: device.status === 'connected' 
-              ? theme.colors.success 
-              : device.status === 'pairing' 
-                ? theme.colors.warning 
-                : theme.colors.error 
+            { 
+              backgroundColor: 
+                device.status === 'connected' ? colors.status.available : 
+                device.status === 'disconnected' ? colors.error : 
+                colors.secondary,
+              marginRight: isRTL ? 0 : 6,
+              marginLeft: isRTL ? 6 : 0
             }
           ]} />
-          <Text style={styles.statusText}>{device.status}</Text>
-          <Text style={styles.lastConnected}>• Last: {device.lastConnected}</Text>
+          <Text style={[styles.statusText, { color: currentColors.text.primary }]}>{device.status}</Text>
+          <Text style={[
+            styles.lastConnected, 
+            { 
+              color: currentColors.text.primary,
+              marginLeft: isRTL ? 0 : 6,
+              marginRight: isRTL ? 6 : 0
+            }
+          ]}>• {device.lastConnected}</Text>
         </View>
       </View>
       
       <Switch
         value={device.isActive}
         onValueChange={() => toggleDeviceStatus(device.id)}
-        trackColor={{ false: '#767577', true: `${theme.colors.accent}80` }}
-        thumbColor={device.isActive ? theme.colors.accent : '#f4f3f4'}
+        trackColor={switchStyles.trackColor}
+        thumbColor={switchStyles.thumbColor(device.isActive)}
+        ios_backgroundColor={switchStyles.ios_backgroundColor}
       />
     </View>
   );
@@ -128,121 +151,125 @@ const ConnectedScreen = () => {
     <TouchableOpacity 
       style={[
         styles.filterButton, 
-        activeFilter === value && styles.filterButtonActive
+        { backgroundColor: currentColors.surface },
+        activeFilter === value && [styles.filterButtonActive, { backgroundColor: currentColors.accent }]
       ]}
       onPress={() => setActiveFilter(value)}
     >
-      <Text style={[
-        styles.filterButtonText,
-        activeFilter === value && styles.filterButtonTextActive
-      ]}>
+      <Text 
+        style={[
+          styles.filterButtonText,
+          { color: activeFilter === value ? '#FFF' : currentColors.text.primary }
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.headerText}>Connected Devices</Text>
+    <AppLayout 
+      paddingHorizontal={20} 
+      paddingVertical={16} 
+      scrollable={true}
+      bottomNavPadding={true}
+    >
+      <Text style={[styles.headerText, { color: currentColors.text.primary }]}>{t('connected')}</Text>
       
-      <View style={styles.filterContainer}>
-        <FilterButton title="All" value="all" />
-        <FilterButton title="Vehicles" value="vehicle" />
-        <FilterButton title="Payment" value="payment" />
-        <FilterButton title="Smart Home" value="smart_home" />
-        <FilterButton title="Wearables" value="wearable" />
+      <View style={[styles.filterContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <FilterButton title={t('all')} value="all" />
+        <FilterButton title={t('car')} value="vehicle" />
+        <FilterButton title={t('paymentMethods')} value="payment" />
+        <FilterButton title={t('home')} value="smart_home" />
+        <FilterButton title={t('other')} value="wearable" />
       </View>
       
-      <ScrollView style={styles.scrollView}>
+      <View style={styles.devicesList}>
         {filteredDevices.map(device => (
           <DeviceCard key={device.id} device={device} />
         ))}
         
         {filteredDevices.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="bluetooth-outline" size={48} color={theme.colors.text.primary} />
-            <Text style={styles.emptyStateText}>No connected devices found</Text>
-            <Text style={styles.emptyStateSubText}>Try connecting a new device</Text>
+            <Ionicons name="bluetooth-outline" size={48} color={currentColors.text.primary} />
+            <Text style={[styles.emptyStateText, { color: currentColors.text.primary }]}>{t('noVehicles')}</Text>
+            <Text style={[styles.emptyStateSubText, { color: currentColors.text.primary }]}>{t('addVehicle')}</Text>
           </View>
         )}
-      </ScrollView>
+      </View>
       
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { borderTopColor: currentColors.divider }]}>
         <ActionButton
-          title="Connect New Device"
+          title={t('addPaymentMethod')}
           onPress={() => console.log('Connect new device')}
           variant="primary"
         />
       </View>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.md,
-  },
   headerText: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    marginBottom: 20,
+    marginTop: 8,
   },
   filterContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   filterButton: {
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.spacing.sm,
-    marginRight: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: '#FDC200',
   },
   filterButtonText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 14,
   },
   filterButtonTextActive: {
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  scrollView: {
-    flex: 1,
+  devicesList: {
+    marginBottom: 16,
   },
   deviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.medium,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   deviceIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${theme.colors.accent}10`,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: 16,
   },
   deviceInfo: {
     flex: 1,
   },
   deviceName: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
     marginBottom: 4,
   },
   deviceStatus: {
@@ -256,35 +283,31 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
+    fontSize: 14,
     textTransform: 'capitalize',
   },
   lastConnected: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.primary,
+    fontSize: 12,
     marginLeft: 6,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.xxl,
+    paddingVertical: 40,
   },
   emptyStateText: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginTop: theme.spacing.md,
+    marginTop: 16,
   },
   emptyStateSubText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.text.primary,
-    marginTop: theme.spacing.xs,
+    fontSize: 16,
+    marginTop: 8,
   },
   buttonContainer: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.divider,
+    marginBottom: 90,
   },
 });
 

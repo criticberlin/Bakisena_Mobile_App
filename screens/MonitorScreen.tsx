@@ -1,10 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import theme from '../theme/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
+import AppLayout from '../components/layout/AppLayout';
+import { useLanguage } from '../constants/translations/LanguageContext';
 
 const MonitorScreen = () => {
+  const { themeMode, colors } = useTheme();
+  const { t, isRTL } = useLanguage();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
+  
   // Simulated data for parking occupancy
   const parkingData = {
     totalSpaces: 120,
@@ -35,109 +43,113 @@ const MonitorScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.headerText}>Parking Monitor</Text>
+    <AppLayout
+      paddingHorizontal={20}
+      paddingVertical={16}
+      scrollable={true}
+    >
+      <Text style={[styles.headerText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('monitor')}</Text>
       
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.statusCard}>
-          <Text style={styles.statusTitle}>Real-time Occupancy</Text>
+      <View style={[styles.contentContainer]}>
+        <View style={[styles.statusCard, { backgroundColor: currentColors.surface }]}>
+          <Text style={[styles.statusTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('parkingStatus')}</Text>
           
           <View style={styles.occupancyBar}>
             <View 
               style={[
                 styles.occupiedBar, 
-                { width: `${occupancyPercentage}%` }
+                { width: `${occupancyPercentage}%`, backgroundColor: currentColors.error }
               ]} 
             />
             <View 
               style={[
                 styles.reservedBar, 
-                { width: `${reservedPercentage}%` }
+                { width: `${reservedPercentage}%`, backgroundColor: colors.status.reserved }
               ]} 
             />
             <View 
               style={[
                 styles.availableBar, 
-                { width: `${availablePercentage}%` }
+                { width: `${availablePercentage}%`, backgroundColor: colors.status.available }
               ]} 
             />
           </View>
           
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={styles.legendColorOccupied} />
-              <Text style={styles.legendText}>Occupied ({parkingData.occupiedSpaces})</Text>
+          <View style={[styles.legendContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.legendItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.legendColorOccupied, { backgroundColor: currentColors.error, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }]} />
+              <Text style={[styles.legendText, { color: currentColors.text.primary }]}>{t('occupiedSlots')} ({parkingData.occupiedSpaces})</Text>
             </View>
-            <View style={styles.legendItem}>
-              <View style={styles.legendColorReserved} />
-              <Text style={styles.legendText}>Reserved ({parkingData.reservedSpaces})</Text>
+            <View style={[styles.legendItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.legendColorReserved, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }]} />
+              <Text style={[styles.legendText, { color: currentColors.text.primary }]}>{t('reservedSlots')} ({parkingData.reservedSpaces})</Text>
             </View>
-            <View style={styles.legendItem}>
-              <View style={styles.legendColorAvailable} />
-              <Text style={styles.legendText}>Available ({parkingData.availableSpaces})</Text>
+            <View style={[styles.legendItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.legendColorAvailable, { backgroundColor: colors.status.available, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }]} />
+              <Text style={[styles.legendText, { color: currentColors.text.primary }]}>{t('availableSlots')} ({parkingData.availableSpaces})</Text>
             </View>
           </View>
         </View>
         
-        <View style={styles.dataCard}>
-          <Text style={styles.dataTitle}>Today's Statistics</Text>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Peak Hours:</Text>
-            <Text style={styles.dataValue}>08:00 - 10:00, 17:00 - 19:00</Text>
+        <View style={[styles.dataCard, { backgroundColor: currentColors.surface }]}>
+          <Text style={[styles.dataTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('statistics')}</Text>
+          <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('home')}:</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>08:00 - 10:00, 17:00 - 19:00</Text>
           </View>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Average Occupancy:</Text>
-            <Text style={styles.dataValue}>65%</Text>
+          <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('parkingStatus')}:</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>65%</Text>
           </View>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Turnover Rate:</Text>
-            <Text style={styles.dataValue}>3.2 vehicles/slot/day</Text>
+          <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('duration')}:</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>3.2</Text>
           </View>
         </View>
         
-        <View style={styles.alertsCard}>
-          <Text style={styles.alertsTitle}>System Alerts</Text>
-          <View style={styles.alertItem}>
-            <View style={styles.alertDot} />
-            <Text style={styles.alertText}>Level 2 is nearly full (95% occupancy)</Text>
+        <View style={[styles.alertsCard, { backgroundColor: currentColors.surface }]}>
+          <Text style={[styles.alertsTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('notifications')}</Text>
+          <View style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
+            <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('totalSlots')}</Text>
           </View>
-          <View style={styles.alertItem}>
-            <View style={styles.alertDot} />
-            <Text style={styles.alertText}>Maintenance scheduled for Level 3 tomorrow</Text>
+          <View style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
+            <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('settings')}</Text>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.md,
-  },
   headerText: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
+    marginTop: 8,
   },
-  scrollView: {
+  contentContainer: {
     flex: 1,
   },
   statusCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borders.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.medium,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   statusTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   occupancyBar: {
     height: 20,
@@ -148,20 +160,17 @@ const styles = StyleSheet.create({
   },
   occupiedBar: {
     height: '100%',
-    backgroundColor: theme.colors.error,
   },
   reservedBar: {
     height: '100%',
-    backgroundColor: theme.colors.warning,
   },
   availableBar: {
     height: '100%',
-    backgroundColor: theme.colors.success,
   },
   legendContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
   },
   legendItem: {
     flexDirection: 'row',
@@ -171,82 +180,84 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: theme.colors.error,
     marginRight: 4,
   },
   legendColorReserved: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: theme.colors.warning,
     marginRight: 4,
   },
   legendColorAvailable: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: theme.colors.success,
     marginRight: 4,
   },
   legendText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 12,
   },
   dataCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borders.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.medium,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   dataTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   dataRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   dataLabel: {
-    color: theme.colors.text.secondary,
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 16,
   },
   dataValue: {
-    color: theme.colors.accent,
     fontWeight: 'bold',
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 16,
   },
   alertsCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borders.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.medium,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   alertsTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   alertItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   alertDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.warning,
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
   },
   alertText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 16,
   },
 });
 

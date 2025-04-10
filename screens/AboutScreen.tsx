@@ -16,6 +16,7 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
+import RTLWrapper from '../components/layout/RTLWrapper';
 
 type AboutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'About'>;
 
@@ -24,34 +25,28 @@ const AboutScreen: React.FC = () => {
   const { themeMode, colors } = useTheme();
   const { t, language } = useLanguage();
   
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors?.light || {} : colors?.dark || {};
+  
   const appVersion = "1.0.0";
 
   return (
-    <AppLayout style={[
-      styles.container, 
-      { alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }
-    ]}>
+    <AppLayout style={styles.container} scrollable={true}>
       {/* Header */}
-      <View style={[
-        styles.header, 
-        { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
-      ]}>
+      <RTLWrapper style={styles.header} ignoreArabic={true}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={currentColors.text?.primary || '#0F1544'} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: currentColors.text?.primary || '#0F1544' }]}>
           {t('about')}
         </Text>
         <View style={{ width: 24 }} />
-      </View>
+      </RTLWrapper>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.content}>
         {/* App Logo */}
         <View style={styles.logoContainer}>
           <Image 
@@ -59,10 +54,7 @@ const AboutScreen: React.FC = () => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.appName, { color: colors.text.primary }]}>
-            Bakisena Parking
-          </Text>
-          <Text style={[styles.appVersion, { color: colors.text.secondary }]}>
+          <Text style={[styles.appVersion, { color: currentColors.text?.secondary || '#0F1544' }]}>
             {t('version')}: {appVersion}
           </Text>
         </View>
@@ -72,14 +64,14 @@ const AboutScreen: React.FC = () => {
           <View style={[
             styles.sectionContainer, 
             { 
-              backgroundColor: colors.surface, 
+              backgroundColor: currentColors.surface, 
             }
           ]}>
             <Text style={[
               styles.sectionTitle, 
               { 
-                color: colors.text.primary,
-                textAlign: language === 'ar' ? 'right' : 'left'
+                color: currentColors.text?.primary || '#0F1544',
+                textAlign: 'left'
               }
             ]}>
               {t('aboutApp')}
@@ -87,8 +79,8 @@ const AboutScreen: React.FC = () => {
             <Text style={[
               styles.sectionText, 
               { 
-                color: colors.text.secondary,
-                textAlign: language === 'ar' ? 'right' : 'left'
+                color: currentColors.text?.secondary || '#0F1544',
+                textAlign: 'left'
               }
             ]}>
               {t('appDescription')}
@@ -98,12 +90,12 @@ const AboutScreen: React.FC = () => {
         
         {/* Developer Info */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.sectionBlur}>
-          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.sectionContainer, { backgroundColor: currentColors.surface }]}>
             <Text style={[
               styles.sectionTitle, 
               { 
-                color: colors.text.primary,
-                textAlign: language === 'ar' ? 'right' : 'left'  
+                color: currentColors.text?.primary || '#0F1544',
+                textAlign: 'left'  
               }
             ]}>
               {t('developer')}
@@ -111,8 +103,8 @@ const AboutScreen: React.FC = () => {
             <Text style={[
               styles.sectionText, 
               { 
-                color: colors.text.secondary,
-                textAlign: language === 'ar' ? 'right' : 'left'
+                color: currentColors.text?.secondary || '#0F1544',
+                textAlign: 'left'
               }
             ]}>
               {t('developerInfo')}
@@ -122,121 +114,120 @@ const AboutScreen: React.FC = () => {
         
         {/* Contact Info */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.sectionBlur}>
-          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.sectionContainer, { backgroundColor: currentColors.surface }]}>
             <Text style={[
               styles.sectionTitle, 
               { 
-                color: colors.text.primary,
-                textAlign: language === 'ar' ? 'right' : 'left'
+                color: currentColors.text?.primary || '#0F1544',
+                textAlign: 'left'
               }
             ]}>
               {t('contact')}
             </Text>
             
-            <TouchableOpacity 
-              style={[
-                styles.contactItem,
-                { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
-              ]}
-              onPress={() => Linking.openURL('mailto:support@bakisena.com')}
+            <RTLWrapper 
+              style={styles.contactItem}
+              ignoreArabic={true}
             >
-              <Ionicons name="mail-outline" size={20} color={colors.accent} style={language === 'ar' ? styles.iconRtl : styles.icon} />
-              <Text style={[styles.contactText, { color: colors.text.secondary }]}>
-                support@bakisena.com
-              </Text>
-            </TouchableOpacity>
+              <Ionicons name="mail-outline" size={20} color={currentColors.accent} style={styles.icon} />
+              <TouchableOpacity onPress={() => Linking.openURL('mailto:support@bakisena.com')}>
+                <Text style={[styles.contactText, { color: currentColors.text?.secondary || '#0F1544' }]}>
+                  support@bakisena.com
+                </Text>
+              </TouchableOpacity>
+            </RTLWrapper>
             
-            <TouchableOpacity 
-              style={[
-                styles.contactItem,
-                { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
-              ]}
-              onPress={() => Linking.openURL('tel:+1234567890')}
+            <RTLWrapper 
+              style={styles.contactItem}
+              ignoreArabic={true}
             >
-              <Ionicons name="call-outline" size={20} color={colors.accent} style={language === 'ar' ? styles.iconRtl : styles.icon} />
-              <Text style={[styles.contactText, { color: colors.text.secondary }]}>
-                +123 456 7890
-              </Text>
-            </TouchableOpacity>
+              <Ionicons name="call-outline" size={20} color={currentColors.accent} style={styles.icon} />
+              <TouchableOpacity onPress={() => Linking.openURL('tel:+201015183968')}>
+                <Text style={[styles.contactText, { color: currentColors.text?.secondary || '#0F1544' }]}>
+                  +201015183968
+                </Text>
+              </TouchableOpacity>
+            </RTLWrapper>
             
-            <TouchableOpacity 
-              style={[
-                styles.contactItem,
-                { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
-              ]}
-              onPress={() => Linking.openURL('https://www.bakisena.com')}
+            <RTLWrapper 
+              style={styles.contactItem}
+              ignoreArabic={true}
             >
-              <Ionicons name="globe-outline" size={20} color={colors.accent} style={language === 'ar' ? styles.iconRtl : styles.icon} />
-              <Text style={[styles.contactText, { color: colors.text.secondary }]}>
-                www.bakisena.com
-              </Text>
-            </TouchableOpacity>
+              <Ionicons name="globe-outline" size={20} color={currentColors.accent} style={styles.icon} />
+              <TouchableOpacity onPress={() => Linking.openURL('https://www.bakisena.com')}>
+                <Text style={[styles.contactText, { color: currentColors.text?.secondary || '#0F1544' }]}>
+                  www.bakisena.com
+                </Text>
+              </TouchableOpacity>
+            </RTLWrapper>
           </View>
         </BlurView>
         
         {/* Legal */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.sectionBlur}>
-          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
-            <TouchableOpacity 
+          <View style={[styles.sectionContainer, { backgroundColor: currentColors.surface }]}>
+            <RTLWrapper 
               style={[
                 styles.legalItem, 
-                { borderBottomColor: colors.divider },
-                { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
+                { borderBottomColor: currentColors.divider }
               ]}
-              onPress={() => navigation.navigate('Settings')}
+              ignoreArabic={true}
             >
               <Text style={[
                 styles.legalText, 
                 { 
-                  color: colors.text.primary,
-                  textAlign: language === 'ar' ? 'right' : 'left'
+                  color: currentColors.text?.primary || '#0F1544',
+                  textAlign: 'left'
                 }
               ]}>
                 {t('termsOfService')}
               </Text>
-              <Ionicons 
-                name={language === 'ar' ? "chevron-back" : "chevron-forward"} 
-                size={18} 
-                color={colors.text.secondary} 
-              />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                <Ionicons 
+                  name="chevron-forward" 
+                  size={18} 
+                  color={currentColors.text?.secondary || '#0F1544'} 
+                />
+              </TouchableOpacity>
+            </RTLWrapper>
             
-            <TouchableOpacity 
+            <RTLWrapper 
               style={[
                 styles.legalItem, 
-                { borderBottomWidth: 0 },
-                { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
+                { borderBottomWidth: 0 }
               ]}
-              onPress={() => navigation.navigate('Settings')}
+              ignoreArabic={true}
             >
               <Text style={[
                 styles.legalText, 
                 { 
-                  color: colors.text.primary,
-                  textAlign: language === 'ar' ? 'right' : 'left'
+                  color: currentColors.text?.primary || '#0F1544',
+                  textAlign: 'left'
                 }
               ]}>
                 {t('privacyPolicy')}
               </Text>
-              <Ionicons 
-                name={language === 'ar' ? "chevron-back" : "chevron-forward"} 
-                size={18} 
-                color={colors.text.secondary} 
-              />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                <Ionicons 
+                  name="chevron-forward" 
+                  size={18} 
+                  color={currentColors.text?.secondary || '#0F1544'} 
+                />
+              </TouchableOpacity>
+            </RTLWrapper>
           </View>
         </BlurView>
         
         <Text style={[
           styles.copyright, 
           { 
-            color: colors.text.secondary,
-            textAlign: language === 'ar' ? 'right' : 'left'
+            color: currentColors.text?.secondary || '#0F1544',
+            textAlign: 'left'
           }
         ]}>
           © 2023 Bakisena. {t('allRightsReserved')}
         </Text>
-      </ScrollView>
+      </View>
     </AppLayout>
   );
 };
@@ -245,12 +236,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  content: {
+    flex: 1,
+    paddingBottom: 30,
+  },
   header: {
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingHorizontal: 16,
     paddingBottom: 20,
+    width: '100%',
   },
   backButton: {
     width: 40,
@@ -332,7 +328,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 24,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'left',
     width: '100%',
   },
 });

@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import { I18nManager } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from '../navigation/AppNavigator';
-import { ThemeProvider, useTheme, AppThemeWrapper } from '../theme';
+import { ThemeProvider, useTheme } from '../theme/ThemeContext';
+import AppThemeWrapper from '../theme/AppThemeWrapper';
 import { LanguageProvider, useLanguage } from '../constants/translations/LanguageContext';
 
 // Keep the splash screen visible while we fetch resources
@@ -14,6 +16,14 @@ SplashScreen.preventAutoHideAsync();
 const AppContent = () => {
   const { themeMode, colors } = useTheme();
   const { isRTL } = useLanguage();
+  
+  // Ensure RTL layout direction is set correctly
+  useEffect(() => {
+    if (I18nManager.isRTL !== isRTL) {
+      // This will ensure RTL is applied consistently
+      I18nManager.forceRTL(isRTL);
+    }
+  }, [isRTL]);
   
   useEffect(() => {
     // Hide the splash screen after the app is ready

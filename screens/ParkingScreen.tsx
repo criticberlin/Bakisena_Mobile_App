@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, Platform } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ParkingMap } from '../components';
+import { View, StyleSheet, Alert } from 'react-native';
+import { ParkingMap, LoadingScreen } from '../components';
 import { ParkingSpot, cairoParkingSpots } from '../components/map/ParkingMap';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
+import AppLayout from '../components/layout/AppLayout';
 
 const ParkingScreen: React.FC = () => {
+  const { themeMode, colors } = useTheme();
+  const { t, isRTL } = useLanguage();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(cairoParkingSpots);
   const [entryTime, setEntryTime] = useState<string>('10:00 AM');
   const [estimatedExitTime, setEstimatedExitTime] = useState<string>('01:00 PM');
@@ -20,9 +26,9 @@ const ParkingScreen: React.FC = () => {
   const handleReserveSpot = (spot: ParkingSpot) => {
     if (spot.status === 'reserved') {
       Alert.alert(
-        'Spot Reserved',
-        'This parking spot is already reserved.',
-        [{ text: 'OK' }]
+        t('reservedSlots'),
+        t('noBookings'),
+        [{ text: t('ok') }]
       );
       return;
     }
@@ -35,9 +41,9 @@ const ParkingScreen: React.FC = () => {
     setParkingSpots(updatedSpots);
     
     Alert.alert(
-      'Spot Reserved',
-      `You have successfully reserved spot ${spot.name || spot.id}.`,
-      [{ text: 'OK' }]
+      t('confirmBooking'),
+      `${t('bookingId')}: ${spot.name || spot.id}`,
+      [{ text: t('ok') }]
     );
   };
   
@@ -74,8 +80,7 @@ const ParkingScreen: React.FC = () => {
   }, [parkingSpots]);
   
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="light" />
+    <AppLayout containerType="screen" scrollable={false}>
       <ParkingMap 
         parkingSpots={parkingSpots}
         onSpotPress={handleSpotPress}
@@ -86,16 +91,11 @@ const ParkingScreen: React.FC = () => {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onNavigate={handleTabNavigation}
+        themeMode={themeMode}
+        colors={currentColors}
       />
-    </SafeAreaView>
+    </AppLayout>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-});
 
 export default ParkingScreen; 

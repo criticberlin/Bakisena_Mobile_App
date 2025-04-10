@@ -4,7 +4,6 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  SafeAreaView, 
   StatusBar,
   TouchableOpacity,
   Platform,
@@ -12,17 +11,38 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import PricingCard from '../components/prices/PricingCard';
 import ActionButton from '../components/ActionButton';
 import { MOCK_LOCATIONS, MOCK_PRICING_PLANS } from '../constants/mockData';
 import { RootStackParamList, PricingPlan } from '../types';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
+import AppLayout from '../components/layout/AppLayout';
 
 type PricesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PricesPage'>;
 
 const PricesScreen: React.FC = () => {
   const navigation = useNavigation<PricesScreenNavigationProp>();
+  const { themeMode, colors } = useTheme();
+
+  // Get current theme colors - ensure we have default fallbacks
+  const currentColors = themeMode === 'light' ? 
+    colors?.light || {} : 
+    colors?.dark || {};
+  
+  // Ensure text object exists
+  const textColors = currentColors?.text || { 
+    primary: '#000000', 
+    secondary: '#666666',
+    disabled: '#999999',
+    hint: '#888888',
+    onAccent: '#FFFFFF' 
+  };
+
+  const { t, language } = useLanguage();
+  const isRTL = language === 'ar';
   
   // State for the cost estimator
   const [selectedLocation, setSelectedLocation] = useState(MOCK_LOCATIONS[0].id);
@@ -79,25 +99,34 @@ const PricesScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <AppLayout scrollable={true} paddingHorizontal={0} paddingVertical={0}>
       <StatusBar
-        barStyle="dark-content"
-        backgroundColor={theme.colors.background}
+        barStyle={themeMode === 'dark' ? "light-content" : "dark-content"}
+        backgroundColor={currentColors.background}
       />
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Back</Text>
+      <View style={[styles.header, { 
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        borderBottomColor: currentColors.divider,
+        backgroundColor: currentColors.background
+      }]}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={[styles.backButtonText, { color: currentColors.primary }]}>
+            {isRTL ? '→' : '←'} {t('back')}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pricing Plans</Text>
+        <Text style={[styles.headerTitle, { color: textColors.primary }]}>{t('pricingPlans')}</Text>
         <View style={{ width: 50 }} />
       </View>
       
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={[styles.container, { backgroundColor: currentColors.background }]}>
         {/* Intro Section */}
-        <View style={styles.introSection}>
-          <Text style={styles.introTitle}>Transparent & Flexible Pricing</Text>
-          <Text style={styles.introDescription}>
-            Choose from various pricing options to suit your parking needs, from hourly to monthly plans.
+        <View style={[styles.introSection, { backgroundColor: currentColors.primary + '10' }]}>
+          <Text style={[styles.introTitle, { color: textColors.primary }]}>{t('transparentPricing')}</Text>
+          <Text style={[styles.introDescription, { color: textColors.secondary }]}>
+            {t('pricingDescription')}
           </Text>
         </View>
         
@@ -105,8 +134,8 @@ const PricesScreen: React.FC = () => {
         {MOCK_LOCATIONS.map(location => (
           <View key={location.id} style={styles.locationSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{location.name}</Text>
-              <Text style={styles.locationAddress}>{location.address}</Text>
+              <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{location.name}</Text>
+              <Text style={[styles.locationAddress, { color: textColors.secondary }]}>{location.address}</Text>
             </View>
             
             {getLocationPlans(location.id).map(plan => (
@@ -124,26 +153,50 @@ const PricesScreen: React.FC = () => {
         
         {/* Cost Estimator */}
         <View style={styles.estimatorSection}>
-          <Text style={styles.sectionTitle}>Cost Estimator</Text>
-          <Text style={styles.sectionSubtitle}>Calculate your parking expenses</Text>
+          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('costEstimator')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: textColors.secondary }]}>{t('calculateExpenses')}</Text>
           
-          <View style={styles.estimatorCard}>
+          <View style={[styles.estimatorCard, { 
+            backgroundColor: currentColors.surface,
+            ...Platform.select({
+              ios: {
+                shadowColor: themeMode === 'dark' ? '#000' : '#333',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: themeMode === 'dark' ? 0.4 : 0.1,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 4,
+              },
+            }),
+          }]}>
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Select Location</Text>
+              <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('selectLocation')}</Text>
               <View style={styles.selectContainer}>
                 {MOCK_LOCATIONS.map(location => (
                   <TouchableOpacity
                     key={location.id}
                     style={[
                       styles.locationOption,
-                      selectedLocation === location.id && styles.selectedLocationOption
+                      { 
+                        backgroundColor: selectedLocation === location.id 
+                          ? currentColors.primary 
+                          : themeMode === 'dark' ? currentColors.surface : currentColors.background,
+                        borderColor: selectedLocation === location.id 
+                          ? currentColors.primary 
+                          : currentColors.divider
+                      }
                     ]}
                     onPress={() => setSelectedLocation(location.id)}
                   >
                     <Text 
                       style={[
                         styles.locationOptionText,
-                        selectedLocation === location.id && styles.selectedLocationOptionText
+                        { 
+                          color: selectedLocation === location.id 
+                            ? themeMode === 'dark' ? currentColors.background : '#ffffff'
+                            : textColors.primary 
+                        }
                       ]}
                     >
                       {location.name}
@@ -153,40 +206,52 @@ const PricesScreen: React.FC = () => {
               </View>
             </View>
             
-            <View style={styles.durationContainer}>
+            <View style={[styles.durationContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Hours</Text>
+                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('hours')}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    backgroundColor: currentColors.background,
+                    borderColor: currentColors.divider,
+                    color: textColors.primary,
+                    textAlign: isRTL ? 'right' : 'left'
+                  }]}
                   keyboardType="numeric"
                   value={hours}
                   onChangeText={setHours}
                   placeholder="0"
+                  placeholderTextColor={textColors.hint}
                 />
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Days</Text>
+                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('days')}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    backgroundColor: currentColors.background,
+                    borderColor: currentColors.divider,
+                    color: textColors.primary,
+                    textAlign: isRTL ? 'right' : 'left'
+                  }]}
                   keyboardType="numeric"
                   value={days}
                   onChangeText={setDays}
                   placeholder="0"
+                  placeholderTextColor={textColors.hint}
                 />
               </View>
             </View>
             
             <ActionButton
-              title="Calculate Cost"
+              title={t('calculateCost')}
               onPress={calculateEstimatedCost}
               style={styles.calculateButton}
             />
             
             {estimatedCost !== null && (
-              <View style={styles.estimatedCostContainer}>
-                <Text style={styles.estimatedCostLabel}>Estimated Cost</Text>
-                <Text style={styles.estimatedCostValue}>LE {estimatedCost.toFixed(2)}</Text>
+              <View style={[styles.estimatedCostContainer, { backgroundColor: currentColors.primary + '15' }]}>
+                <Text style={[styles.estimatedCostLabel, { color: textColors.secondary }]}>{t('estimatedCost')}</Text>
+                <Text style={[styles.estimatedCostValue, { color: currentColors.accent }]}>LE {estimatedCost.toFixed(2)}</Text>
               </View>
             )}
           </View>
@@ -194,200 +259,169 @@ const PricesScreen: React.FC = () => {
         
         {/* Payment Methods */}
         <View style={styles.paymentMethodsSection}>
-          <Text style={styles.sectionTitle}>Accepted Payment Methods</Text>
+          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('acceptedPayments')}</Text>
           <View style={styles.paymentMethodsContainer}>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>💳</Text>
-              <Text style={styles.paymentMethodText}>Credit Card</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('creditCard')}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>🏦</Text>
-              <Text style={styles.paymentMethodText}>Debit Card</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('debitCard')}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>📱</Text>
-              <Text style={styles.paymentMethodText}>Mobile Pay</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('mobilePay')}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>💸</Text>
-              <Text style={styles.paymentMethodText}>Cash</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('cash')}</Text>
             </View>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    justifyContent: 'space-between',
+    height: 60,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    width: '100%',
   },
   backButton: {
     width: 50,
   },
   backButtonText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.primary,
+    fontSize: 16,
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  contentContainer: {
-    paddingBottom: theme.spacing.xxl,
   },
   introSection: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.primary + '10', // 10% opacity
-    margin: theme.spacing.md,
-    borderRadius: theme.borders.radius.md,
+    padding: 16,
+    margin: 12,
+    borderRadius: 8,
   },
   introTitle: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   introDescription: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.text.secondary,
-    lineHeight: theme.typography.lineHeight.md,
+    fontSize: 16,
+    lineHeight: 24,
   },
   locationSection: {
-    marginVertical: theme.spacing.md,
+    marginVertical: 12,
   },
   sectionHeader: {
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
   },
   locationAddress: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
+    fontSize: 14,
   },
   sectionSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 14,
+    marginTop: 4,
   },
   estimatorSection: {
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
+    padding: 16,
+    marginTop: 16,
   },
   estimatorCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borders.radius.md,
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    ...theme.shadows.medium,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 12,
   },
   formGroup: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
+    flex: 1,
   },
   formLabel: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: theme.colors.background,
     height: 45,
-    borderRadius: theme.borders.radius.sm,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: 4,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
   },
   durationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   selectContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   locationOption: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginRight: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borders.radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
-  },
-  selectedLocationOption: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
   },
   locationOptionText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
-  },
-  selectedLocationOptionText: {
-    color: 'white',
-    fontWeight: 'bold',
+    fontSize: 14,
   },
   calculateButton: {
-    marginVertical: theme.spacing.md,
+    marginVertical: 12,
   },
   estimatedCostContainer: {
-    backgroundColor: theme.colors.primary + '15',
-    padding: theme.spacing.md,
-    borderRadius: theme.borders.radius.md,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
   estimatedCostLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xs,
+    fontSize: 14,
+    marginBottom: 4,
   },
   estimatedCostValue: {
-    fontSize: theme.typography.fontSize['3xl'],
+    fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.accent,
   },
   paymentMethodsSection: {
-    padding: theme.spacing.lg,
+    padding: 16,
   },
   paymentMethodsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: theme.spacing.md,
+    marginTop: 12,
   },
   paymentMethod: {
     width: '25%',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   paymentMethodIcon: {
     fontSize: 24,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
   paymentMethodText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.secondary,
+    fontSize: 12,
     textAlign: 'center',
   },
 });

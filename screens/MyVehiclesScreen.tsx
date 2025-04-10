@@ -44,6 +44,10 @@ const mockVehicles: Vehicle[] = [
 const MyVehiclesScreen: React.FC = () => {
   const navigation = useNavigation<MyVehiclesScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   const { t, language } = useLanguage();
   
   const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
@@ -84,7 +88,7 @@ const MyVehiclesScreen: React.FC = () => {
       <View style={[
         styles.vehicleItem, 
         { 
-          backgroundColor: colors.surface,
+          backgroundColor: currentColors.surface,
         }
       ]}>
         <View style={[
@@ -93,9 +97,9 @@ const MyVehiclesScreen: React.FC = () => {
         ]}>
           <View style={[
             styles.vehicleIcon,
-            { backgroundColor: colors.accent + '20' }
+            { backgroundColor: currentColors.accent + '20' }
           ]}>
-            <Ionicons name="car" size={24} color={colors.accent} />
+            <Ionicons name="car" size={24} color={currentColors.accent} />
           </View>
           <View style={[
             styles.vehicleDetails,
@@ -104,7 +108,7 @@ const MyVehiclesScreen: React.FC = () => {
             <Text style={[
               styles.licensePlate, 
               { 
-                color: colors.text.primary,
+                color: currentColors.text.primary,
                 textAlign: language === 'ar' ? 'right' : 'left'
               }
             ]}>
@@ -113,7 +117,7 @@ const MyVehiclesScreen: React.FC = () => {
             <Text style={[
               styles.vehicleModel, 
               { 
-                color: colors.text.secondary,
+                color: currentColors.text.secondary,
                 textAlign: language === 'ar' ? 'right' : 'left'
               }
             ]}>
@@ -122,7 +126,7 @@ const MyVehiclesScreen: React.FC = () => {
             <Text style={[
               styles.vehicleDetails, 
               { 
-                color: colors.text.secondary,
+                color: currentColors.text.secondary,
                 textAlign: language === 'ar' ? 'right' : 'left'
               }
             ]}>
@@ -138,13 +142,13 @@ const MyVehiclesScreen: React.FC = () => {
             style={styles.actionButton}
             onPress={() => handleEditVehicle(item)}
           >
-            <Ionicons name="create-outline" size={20} color={colors.accent} />
+            <Ionicons name="create-outline" size={20} color={currentColors.accent} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => handleDeleteVehicle(item.id)}
           >
-            <Ionicons name="trash-outline" size={20} color={colors.error} />
+            <Ionicons name="trash-outline" size={20} color={currentColors.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -155,7 +159,7 @@ const MyVehiclesScreen: React.FC = () => {
     <View style={[
       styles.container, 
       { 
-        backgroundColor: colors.background,
+        backgroundColor: currentColors.background,
       }
     ]}>
       {/* Header */}
@@ -167,16 +171,16 @@ const MyVehiclesScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={colors.text.primary} />
+          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={currentColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: currentColors.text.primary }]}>
           {t('myVehicles')}
         </Text>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={handleAddVehicle}
         >
-          <Ionicons name="add" size={24} color={colors.accent} />
+          <Ionicons name="add" size={24} color={currentColors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -190,12 +194,12 @@ const MyVehiclesScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="car-outline" size={80} color={colors.text.secondary} />
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+          <Ionicons name="car-outline" size={80} color={currentColors.text.secondary} />
+          <Text style={[styles.emptyText, { color: currentColors.text.secondary }]}>
             {t('noVehicles')}
           </Text>
           <TouchableOpacity 
-            style={[styles.addVehicleButton, { backgroundColor: colors.accent }]}
+            style={[styles.addVehicleButton, { backgroundColor: currentColors.accent }]}
             onPress={handleAddVehicle}
           >
             <Text style={styles.addVehicleButtonText}>

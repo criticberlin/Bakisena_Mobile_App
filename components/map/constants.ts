@@ -1,4 +1,5 @@
 // Shared types and constants for the parking map components
+import theme from '../../theme/theme';
 
 // Define types for props and parking spot data
 export type ParkingSpot = {
@@ -32,6 +33,8 @@ export type ParkingMapProps = {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onNavigate?: (tab: string) => void;
+  themeMode?: 'light' | 'dark'; // Add theme mode to props
+  colors?: any; // Add colors to props
 };
 
 // Common parking spots data - Cairo parking spots
@@ -88,22 +91,23 @@ export const cairoParkingSpots: ParkingSpot[] = [
   }
 ];
 
-// Common colors
+// Export theme colors directly
 export const COLORS = {
-  primary: '#1C1C3C', // Dark navy
-  secondary: '#2A2A4F', // Secondary dark
-  accent: '#F9B233', // Modern yellow-orange
-  background: '#1C1C3C', // Dark navy background
-  card: '#2A2A4F', // Secondary dark for cards
-  text: '#FFFFFF', // White
-  subtext: '#CCCCCC', // Light gray
-  reserved: '#F9B233', // Modern yellow-orange
-  available: '#CCCCCC', // Light gray for available spots
+  ...theme.colors,
+  primary: theme.colors.primary,
+  secondary: theme.colors.secondary,
+  accent: theme.colors.accent,
+  background: theme.colors.background,
+  card: theme.colors.surface,
+  text: theme.colors.text.primary,
+  subtext: theme.colors.text.secondary,
+  reserved: theme.colors.accent,
+  available: theme.colors.text.secondary,
   white: '#FFFFFF',
   black: '#000000',
   shadow: '#000000',
-  success: '#52C41A', // Modern success green
-  error: '#FF4D4F', // Modern error red
-  warning: '#FAAD14', // Modern warning amber
-  disabled: '#8E8E9F', // Medium gray
+  success: theme.colors.success,
+  error: theme.colors.error,
+  warning: theme.colors.warning,
+  disabled: theme.colors.text.disabled,
 }; 

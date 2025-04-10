@@ -27,6 +27,9 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+// Type for Ionicons names
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
 // Sample payment methods
 const mockPaymentMethods: PaymentMethod[] = [
   {
@@ -55,6 +58,10 @@ const mockPaymentMethods: PaymentMethod[] = [
 const PaymentMethodsScreen: React.FC = () => {
   const navigation = useNavigation<PaymentMethodsScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   const { t, language } = useLanguage();
   
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
@@ -105,7 +112,7 @@ const PaymentMethodsScreen: React.FC = () => {
     );
   };
   
-  const getPaymentMethodIcon = (type: string) => {
+  const getPaymentMethodIcon = (type: string): string => {
     switch (type) {
       case 'card':
         return 'card-outline';
@@ -125,8 +132,8 @@ const PaymentMethodsScreen: React.FC = () => {
       <View style={[
         styles.paymentItem, 
         { 
-          backgroundColor: colors.surface,
-          borderColor: item.isDefault ? colors.accent : 'transparent',
+          backgroundColor: currentColors.surface,
+          borderColor: item.isDefault ? currentColors.accent : 'transparent',
         }
       ]}>
         <View style={[
@@ -135,9 +142,13 @@ const PaymentMethodsScreen: React.FC = () => {
         ]}>
           <View style={[
             styles.paymentIcon,
-            { backgroundColor: colors.accent + '20' }
+            { backgroundColor: currentColors.accent + '20' }
           ]}>
-            <Ionicons name={getPaymentMethodIcon(item.type)} size={24} color={colors.accent} />
+            <Ionicons 
+              name={getPaymentMethodIcon(item.type) as IconName} 
+              size={24} 
+              color={currentColors.accent} 
+            />
           </View>
           <View style={[
             styles.paymentDetails,
@@ -146,7 +157,7 @@ const PaymentMethodsScreen: React.FC = () => {
             <Text style={[
               styles.paymentName, 
               { 
-                color: colors.text.primary,
+                color: currentColors.text.primary,
                 textAlign: language === 'ar' ? 'right' : 'left'
               }
             ]}>
@@ -155,7 +166,7 @@ const PaymentMethodsScreen: React.FC = () => {
             <Text style={[
               styles.paymentNumber, 
               { 
-                color: colors.text.secondary,
+                color: currentColors.text.secondary,
                 textAlign: language === 'ar' ? 'right' : 'left'
               }
             ]}>
@@ -164,11 +175,11 @@ const PaymentMethodsScreen: React.FC = () => {
             {item.isDefault && (
               <View style={[
                 styles.defaultBadge,
-                { backgroundColor: colors.accent + '30' }
+                { backgroundColor: currentColors.accent + '30' }
               ]}>
                 <Text style={[
                   styles.defaultBadgeText,
-                  { color: colors.accent }
+                  { color: currentColors.accent }
                 ]}>
                   {t('default')}
                 </Text>
@@ -185,7 +196,7 @@ const PaymentMethodsScreen: React.FC = () => {
               style={styles.actionButton}
               onPress={() => handleSetDefault(item.id)}
             >
-              <Text style={[styles.actionButtonText, { color: colors.accent }]}>
+              <Text style={[styles.actionButtonText, { color: currentColors.accent }]}>
                 {t('setDefault')}
               </Text>
             </TouchableOpacity>
@@ -194,7 +205,7 @@ const PaymentMethodsScreen: React.FC = () => {
             style={styles.actionButton}
             onPress={() => handleDeletePaymentMethod(item.id)}
           >
-            <Ionicons name="trash-outline" size={20} color={colors.error} />
+            <Ionicons name="trash-outline" size={20} color={currentColors.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -205,7 +216,7 @@ const PaymentMethodsScreen: React.FC = () => {
     <View style={[
       styles.container, 
       { 
-        backgroundColor: colors.background,
+        backgroundColor: currentColors.background,
       }
     ]}>
       {/* Header */}
@@ -217,16 +228,16 @@ const PaymentMethodsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={colors.text.primary} />
+          <Ionicons name={(language === 'ar' ? "arrow-forward" : "arrow-back") as IconName} size={24} color={currentColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: currentColors.text.primary }]}>
           {t('paymentMethods')}
         </Text>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={handleAddPaymentMethod}
         >
-          <Ionicons name="add" size={24} color={colors.accent} />
+          <Ionicons name="add" size={24} color={currentColors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -240,12 +251,12 @@ const PaymentMethodsScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="card-outline" size={80} color={colors.text.secondary} />
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+          <Ionicons name={"card-outline" as IconName} size={80} color={currentColors.text.secondary} />
+          <Text style={[styles.emptyText, { color: currentColors.text.secondary }]}>
             {t('noPaymentMethods')}
           </Text>
           <TouchableOpacity 
-            style={[styles.addPaymentButton, { backgroundColor: colors.accent }]}
+            style={[styles.addPaymentButton, { backgroundColor: currentColors.accent }]}
             onPress={handleAddPaymentMethod}
           >
             <Text style={styles.addPaymentButtonText}>

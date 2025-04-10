@@ -14,10 +14,11 @@ import MapView, { Marker, Callout, PROVIDER_GOOGLE, Region } from 'react-native-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { ParkingMapProps, cairoParkingSpots, COLORS, ParkingSpot } from './constants';
+import { ParkingMapProps, cairoParkingSpots, ParkingSpot } from './constants';
+import { useTheme } from '../../theme/ThemeContext';
 
 // Map style to make it look modern and dark
-const mapStyle = [
+const darkMapStyle = [
   {
     "elementType": "geometry",
     "stylers": [
@@ -204,6 +205,8 @@ const mapStyle = [
   }
 ];
 
+const lightMapStyle: any[] = []; // Empty style for light mode
+
 // Default map region - Cairo, Egypt
 const defaultRegion = {
   latitude: 30.0444,
@@ -230,6 +233,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   onZoomOut,
   onNavigate,
 }) => {
+  const { colors, themeMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -310,46 +314,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   }, [isRealTime, parkingSpots]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Modern Header with Blur Effect */}
-      <View style={styles.headerContainer}>
-        <BlurView intensity={30} tint="dark" style={styles.headerBlur}>
-          <Text style={styles.headerTitle}>Smart Parking</Text>
-          <View style={styles.headerControls}>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="notifications-outline" size={26} color={COLORS.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="settings-outline" size={26} color={COLORS.text} />
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-      </View>
-      
-      {/* Parking Status Card */}
-      <View style={styles.statusCardContainer}>
-        <BlurView intensity={20} tint="dark" style={styles.statusCard}>
-          <View style={styles.statusCardContent}>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Entry Time</Text>
-              <Text style={styles.statusValue}>{entryTime}</Text>
-            </View>
-            <View style={styles.statusDivider} />
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Exit Time</Text>
-              <Text style={styles.statusValue}>{estimatedExitTime}</Text>
-            </View>
-            <View style={styles.statusDivider} />
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Status</Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>Live</Text>
-              </View>
-            </View>
-          </View>
-        </BlurView>
-      </View>
-      
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Main Content - Parking Map */}
       <View style={styles.mapContainer}>
         {Platform.OS !== 'web' && (
@@ -358,12 +323,14 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
             style={styles.map}
             initialRegion={initialRegion}
             provider={PROVIDER_GOOGLE}
-            customMapStyle={mapStyle}
+            customMapStyle={themeMode === 'dark' ? darkMapStyle : lightMapStyle}
             showsUserLocation
             showsMyLocationButton={false}
             showsCompass={false}
             showsScale={false}
             onMapReady={() => setMapReady(true)}
+            rotateEnabled={true}
+            pitchEnabled={true}
           >
             {parkingSpots.map((spot) => (
               <Marker
@@ -376,17 +343,36 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
               >
                 <View style={[
                   styles.markerContainer,
-                  spot.status === 'available' ? styles.availableMarker : styles.reservedMarker
+                  { 
+                    backgroundColor: spot.status === 'available' 
+                      ? colors.success 
+                      : colors.accent,
+                    borderColor: colors.secondary
+                  }
                 ]}>
                   <Text style={styles.markerText}>P</Text>
                 </View>
                 <Callout tooltip>
-                  <View style={styles.calloutContainer}>
-                    <Text style={styles.calloutTitle}>{spot.name || `Spot ${spot.id}`}</Text>
+                  <View style={[
+                    styles.calloutContainer, 
+                    { 
+                      backgroundColor: themeMode === 'dark' ? '#2A2A4F' : '#FFFFFF',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: themeMode === 'dark' ? 0.3 : 0.1,
+                      shadowRadius: 8,
+                      elevation: 8 
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.calloutTitle,
+                      { color: colors.text.primary }
+                    ]}>{spot.name || `Spot ${spot.id}`}</Text>
+                    
                     <View style={styles.calloutStatusContainer}>
                       <View style={[
                         styles.calloutStatusIndicator, 
-                        { backgroundColor: spot.status === 'available' ? COLORS.success : COLORS.accent }
+                        { backgroundColor: spot.status === 'available' ? colors.success : colors.accent }
                       ]} />
                       <Text style={styles.calloutStatus}>
                         {spot.status === 'available' ? 'Available' : 'Reserved'}
@@ -396,22 +382,31 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     <View style={styles.calloutDetailsGrid}>
                       {spot.floor && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="layers-outline" size={16} color={COLORS.subtext} />
-                          <Text style={styles.calloutDetail}>Floor {spot.floor}</Text>
+                          <Ionicons name="layers-outline" size={16} color={colors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: colors.text.secondary }
+                          ]}>Floor {spot.floor}</Text>
                         </View>
                       )}
                       
                       {spot.price && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="cash-outline" size={16} color={COLORS.subtext} />
-                          <Text style={styles.calloutDetail}>${spot.price}/hr</Text>
+                          <Ionicons name="cash-outline" size={16} color={colors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: colors.text.secondary }
+                          ]}>${spot.price}/hr</Text>
                         </View>
                       )}
                       
                       {spot.distance && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="location-outline" size={16} color={COLORS.subtext} />
-                          <Text style={styles.calloutDetail}>{spot.distance} km</Text>
+                          <Ionicons name="location-outline" size={16} color={colors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: colors.text.secondary }
+                          ]}>{spot.distance} km</Text>
                         </View>
                       )}
                     </View>
@@ -419,13 +414,20 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.reserveButton,
-                        spot.status === 'reserved' && styles.reservedButton
+                        { 
+                          backgroundColor: spot.status === 'available' ? colors.accent : 'rgba(255, 255, 255, 0.2)',
+                          borderWidth: 1,
+                          borderColor: spot.status === 'available' ? 'transparent' : colors.divider
+                        }
                       ]}
                       onPress={() => handleReserveSpot(spot)}
                       disabled={spot.status === 'reserved'}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.reserveButtonText}>
+                      <Text style={[
+                        styles.reserveButtonText,
+                        { color: spot.status === 'available' ? colors.text.primary : colors.text.disabled }
+                      ]}>
                         {spot.status === 'available' ? 'Reserve Spot' : 'Already Reserved'}
                       </Text>
                     </TouchableOpacity>
@@ -451,7 +453,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
             onPress={handleZoomIn}
             activeOpacity={0.7}
           >
-            <Ionicons name="add" size={24} color={COLORS.text} />
+            <Ionicons name="add" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -459,7 +461,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
             onPress={handleZoomOut}
             activeOpacity={0.7}
           >
-            <Ionicons name="remove" size={24} color={COLORS.text} />
+            <Ionicons name="remove" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -467,50 +469,35 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
             onPress={() => mapRef.current?.animateToRegion(initialRegion, 500)}
             activeOpacity={0.7}
           >
-            <Ionicons name="locate" size={24} color={COLORS.text} />
+            <Ionicons name="locate" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-        </View>
-        
-        {/* Legend */}
-        <View style={styles.legendContainer}>
-          <BlurView intensity={20} tint="dark" style={styles.legend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.available }]} />
-              <Text style={styles.legendText}>Available</Text>
-            </View>
-            
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.reserved }]} />
-              <Text style={styles.legendText}>Reserved</Text>
-            </View>
-            
-            <View style={styles.legendItem}>
-              <View style={styles.userMarkerDot} />
-              <Text style={styles.legendText}>Your Location</Text>
-            </View>
-          </BlurView>
         </View>
       </View>
       
-      {/* Bottom Action Button */}
-      <View style={styles.bottomActionContainer}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.8}
-          onPress={() => {
-            if (selectedSpot) {
-              handleReserveSpot(selectedSpot);
-            } else {
-              // Show a message or navigate to spot selection
-              handleTabPress('list');
-            }
-          }}
-        >
-          <Text style={styles.actionButtonText}>
-            {selectedSpot ? 'Reserve Selected Spot' : 'Find Available Spot'}
-          </Text>
-          <Ionicons name="arrow-forward" size={24} color={COLORS.text} />
-        </TouchableOpacity>
+      {/* Legend */}
+      <View style={styles.legendContainer}>
+        <BlurView intensity={20} tint={themeMode === 'dark' ? "dark" : "light"} style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.legendText, {
+              color: themeMode === 'dark' ? 'white' : colors.text.primary
+            }]}>Available</Text>
+          </View>
+          
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
+            <Text style={[styles.legendText, {
+              color: themeMode === 'dark' ? 'white' : colors.text.primary
+            }]}>Reserved</Text>
+          </View>
+          
+          <View style={styles.legendItem}>
+            <View style={styles.userMarkerDot} />
+            <Text style={[styles.legendText, {
+              color: themeMode === 'dark' ? 'white' : colors.text.primary
+            }]}>Your Location</Text>
+          </View>
+        </BlurView>
       </View>
     </View>
   );
@@ -521,89 +508,6 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  headerContainer: {
-    zIndex: 10,
-    width: '100%',
-    overflow: 'hidden',
-  },
-  headerBlur: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  headerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerButton: {
-    marginLeft: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  statusCardContainer: {
-    position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
-    zIndex: 5,
-    paddingHorizontal: 16,
-  },
-  statusCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  statusCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: 'rgba(42, 42, 79, 0.6)',
-  },
-  statusItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: COLORS.subtext,
-    marginBottom: 4,
-  },
-  statusValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  statusDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: 8,
-  },
-  statusBadge: {
-    backgroundColor: 'rgba(249, 178, 51, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-  },
-  statusBadgeText: {
-    color: COLORS.accent,
-    fontSize: 14,
-    fontWeight: '600',
   },
   mapContainer: {
     flex: 1,
@@ -624,24 +528,26 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  availableMarker: {
-    backgroundColor: COLORS.available,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  reservedMarker: {
-    backgroundColor: COLORS.reserved,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+  marker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   markerText: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.background,
+    color: 'white',
   },
   calloutContainer: {
     width: 220,
-    backgroundColor: COLORS.card,
+    backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -653,7 +559,7 @@ const styles = StyleSheet.create({
   calloutTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: 'black',
     marginBottom: 8,
   },
   calloutStatusContainer: {
@@ -669,7 +575,7 @@ const styles = StyleSheet.create({
   },
   calloutStatus: {
     fontSize: 14,
-    color: COLORS.text,
+    color: 'black',
     fontWeight: '600',
   },
   calloutDetailsGrid: {
@@ -682,11 +588,11 @@ const styles = StyleSheet.create({
   },
   calloutDetail: {
     fontSize: 14,
-    color: COLORS.subtext,
+    color: 'black',
     marginLeft: 8,
   },
   reserveButton: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'white',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -697,7 +603,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   reserveButtonText: {
-    color: COLORS.text,
+    color: 'black',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -709,9 +615,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'white',
     borderWidth: 2,
-    borderColor: COLORS.white,
+    borderColor: 'white',
   },
   userMarkerRing: {
     position: 'absolute',
@@ -719,7 +625,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 2,
-    borderColor: COLORS.accent,
+    borderColor: 'white',
     opacity: 0.5,
   },
   mapControls: {
@@ -743,7 +649,7 @@ const styles = StyleSheet.create({
   },
   legendContainer: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 230,
     left: 16,
     right: 16,
     overflow: 'hidden',
@@ -770,33 +676,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   legendText: {
-    color: COLORS.text,
+    color: 'white',
     fontSize: 12,
-  },
-  bottomActionContainer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 16,
-    right: 16,
-  },
-  actionButton: {
-    backgroundColor: COLORS.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  actionButtonText: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '700',
   },
 });
 

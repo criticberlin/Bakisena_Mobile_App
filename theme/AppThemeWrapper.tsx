@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewProps } from 'react-native';
+import { View, StyleSheet, ViewProps, Animated } from 'react-native';
 import { useTheme } from './ThemeContext';
 
 interface AppThemeWrapperProps extends ViewProps {
@@ -16,19 +16,19 @@ const AppThemeWrapper: React.FC<AppThemeWrapperProps> = ({
   style,
   ...props
 }) => {
-  const { colors, themeMode } = useTheme();
+  const { colors, themeMode, animatedColors } = useTheme();
   
   // Determine the background color based on container type
-  let backgroundColor;
+  let backgroundColor: string | Animated.AnimatedInterpolation<string>;
   switch (containerType) {
     case 'screen':
-      backgroundColor = colors.background;
+      backgroundColor = animatedColors.background;
       break;
     case 'surface':
-      backgroundColor = colors.surface;
+      backgroundColor = animatedColors.surface;
       break;
     case 'card':
-      backgroundColor = themeMode === 'dark' ? colors.surface : colors.background;
+      backgroundColor = themeMode === 'dark' ? animatedColors.surface : animatedColors.background;
       break;
     case 'view':
     default:
@@ -36,7 +36,7 @@ const AppThemeWrapper: React.FC<AppThemeWrapperProps> = ({
   }
   
   return (
-    <View 
+    <Animated.View 
       style={[
         styles.container, 
         { backgroundColor },
@@ -45,13 +45,13 @@ const AppThemeWrapper: React.FC<AppThemeWrapperProps> = ({
       {...props}
     >
       {children}
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    // Add default styles here
+    flex: 1,
   },
 });
 

@@ -3,9 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Platform,
   Image,
   TouchableOpacity
 } from 'react-native';
@@ -14,12 +11,22 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import ActionButton from '../components/ActionButton';
 import { RootStackParamList } from '../types';
-import theme from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../constants/translations/LanguageContext';
+import AppLayout from '../components/layout/AppLayout';
+import RTLWrapper from '../components/layout/RTLWrapper';
 
 type LoginOptionsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LoginOptions'>;
 
 const LoginOptionsScreen: React.FC = () => {
   const navigation = useNavigation<LoginOptionsScreenNavigationProp>();
+  const { themeMode, colors } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
+  const { t, language } = useLanguage();
+  const isRTL = language === 'ar';
 
   const handleLogin = () => {
     navigation.navigate('Login');
@@ -34,12 +41,7 @@ const LoginOptionsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={theme.colors.background}
-      />
-      
+    <AppLayout scrollable={true} containerType="screen" paddingHorizontal={24}>
       <View style={styles.content}>
         <View style={styles.imageContainer}>
           <Image
@@ -50,51 +52,45 @@ const LoginOptionsScreen: React.FC = () => {
         </View>
         
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Ready to get started?</Text>
-          <Text style={styles.subtitle}>
-            Create an account to save your favorite parking locations and manage your reservations.
+          <Text style={[styles.title, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('readyToGetStarted')}</Text>
+          <Text style={[styles.subtitle, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>
+            {t('createAccountDescription')}
           </Text>
         </View>
         
         <View style={styles.buttonContainer}>
           <ActionButton
-            title="Login"
+            title={t('login')}
             onPress={handleLogin}
             style={styles.button}
           />
           
           <ActionButton
-            title="Register"
+            title={t('register')}
             onPress={handleRegister}
             variant="outline"
             style={styles.button}
           />
           
           <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip and continue as guest</Text>
+            <Text style={[styles.skipText, { color: currentColors.accent }]}>{t('skipAsGuest')}</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   content: {
     flex: 1,
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
   },
   imageContainer: {
     alignItems: 'center',
     position: 'relative',
-    marginTop: theme.spacing.xl,
+    marginTop: 24,
   },
   logo: {
     width: 300,
@@ -109,37 +105,37 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginVertical: theme.spacing.xl,
+    marginVertical: 24,
+    width: '100%',
   },
   title: {
-    fontSize: theme.typography.fontSize['3xl'],
+    fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
+    width: '100%',
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.text.secondary,
+    fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
+    width: '100%',
   },
   buttonContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: 24,
   },
   button: {
     width: '100%',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
     height: 54,
   },
   skipButton: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 12,
   },
   skipText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.accent,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

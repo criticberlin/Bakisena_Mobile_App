@@ -99,6 +99,10 @@ const vehicleDetails: {[key: string]: {plate: string, type: string}} = {
 const PastBookingsScreen: React.FC = () => {
   const navigation = useNavigation<PastBookingsScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   const { t, language } = useLanguage();
   
   const [bookings, setBookings] = useState<Reservation[]>(mockBookings);
@@ -139,7 +143,7 @@ const PastBookingsScreen: React.FC = () => {
       case 'CANCELLED':
         return '#FF4D4F'; // Red for cancelled
       default:
-        return colors.text.secondary;
+        return currentColors.text.secondary;
     }
   };
   
@@ -161,7 +165,7 @@ const PastBookingsScreen: React.FC = () => {
       <TouchableOpacity 
         style={[
           styles.bookingItem, 
-          { backgroundColor: colors.surface }
+          { backgroundColor: currentColors.surface }
         ]}
         activeOpacity={0.7}
         onPress={() => {
@@ -181,7 +185,7 @@ const PastBookingsScreen: React.FC = () => {
             <Text style={[
               styles.locationName, 
               { 
-                color: colors.text.primary,
+                color: currentColors.text.primary,
                 textAlign: language === 'ar' ? 'right' : 'left' 
               }
             ]}>
@@ -190,7 +194,7 @@ const PastBookingsScreen: React.FC = () => {
             <Text style={[
               styles.bookingId, 
               { 
-                color: colors.text.secondary,
+                color: currentColors.text.secondary,
                 textAlign: language === 'ar' ? 'right' : 'left' 
               }
             ]}>
@@ -215,15 +219,15 @@ const PastBookingsScreen: React.FC = () => {
           { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
         ]}>
           <View style={styles.detailItem}>
-            <Ionicons name="calendar-outline" size={18} color={colors.accent} style={styles.detailIcon} />
-            <Text style={[styles.detailText, { color: colors.text.secondary }]}>
+            <Ionicons name="calendar-outline" size={18} color={currentColors.accent} style={styles.detailIcon} />
+            <Text style={[styles.detailText, { color: currentColors.text.secondary }]}>
               {formatDate(item.startTime)}
             </Text>
           </View>
           
           <View style={styles.detailItem}>
-            <Ionicons name="time-outline" size={18} color={colors.accent} style={styles.detailIcon} />
-            <Text style={[styles.detailText, { color: colors.text.secondary }]}>
+            <Ionicons name="time-outline" size={18} color={currentColors.accent} style={styles.detailIcon} />
+            <Text style={[styles.detailText, { color: currentColors.text.secondary }]}>
               {formatTime(item.startTime)} - {formatTime(item.endTime)}
             </Text>
           </View>
@@ -234,15 +238,15 @@ const PastBookingsScreen: React.FC = () => {
           { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
         ]}>
           <View style={styles.detailItem}>
-            <Ionicons name="car-outline" size={18} color={colors.accent} style={styles.detailIcon} />
-            <Text style={[styles.detailText, { color: colors.text.secondary }]}>
+            <Ionicons name="car-outline" size={18} color={currentColors.accent} style={styles.detailIcon} />
+            <Text style={[styles.detailText, { color: currentColors.text.secondary }]}>
               {vehicleDetails[item.vehicleId]?.plate || 'Unknown Vehicle'}
             </Text>
           </View>
           
           <View style={styles.detailItem}>
-            <Ionicons name="cash-outline" size={18} color={colors.accent} style={styles.detailIcon} />
-            <Text style={[styles.detailText, { color: colors.text.secondary }]}>
+            <Ionicons name="cash-outline" size={18} color={currentColors.accent} style={styles.detailIcon} />
+            <Text style={[styles.detailText, { color: currentColors.text.secondary }]}>
               LE {item.totalCost.toFixed(2)}
             </Text>
           </View>
@@ -250,7 +254,7 @@ const PastBookingsScreen: React.FC = () => {
         
         <View style={[
           styles.bookingFooter,
-          { borderTopColor: colors.divider }
+          { borderTopColor: currentColors.divider }
         ]}>
           <TouchableOpacity 
             style={[
@@ -261,10 +265,10 @@ const PastBookingsScreen: React.FC = () => {
             <Ionicons 
               name="receipt-outline" 
               size={16} 
-              color={colors.accent} 
+              color={currentColors.accent} 
               style={language === 'ar' ? { marginLeft: 6 } : { marginRight: 6 }}
             />
-            <Text style={[styles.actionText, { color: colors.accent }]}>
+            <Text style={[styles.actionText, { color: currentColors.accent }]}>
               {t('receipt')}
             </Text>
           </TouchableOpacity>
@@ -279,10 +283,10 @@ const PastBookingsScreen: React.FC = () => {
               <Ionicons 
                 name="close-circle-outline" 
                 size={16} 
-                color={colors.error} 
+                color={currentColors.error} 
                 style={language === 'ar' ? { marginLeft: 6 } : { marginRight: 6 }}
               />
-              <Text style={[styles.actionText, { color: colors.error }]}>
+              <Text style={[styles.actionText, { color: currentColors.error }]}>
                 {t('cancel')}
               </Text>
             </TouchableOpacity>
@@ -303,9 +307,9 @@ const PastBookingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={colors.text.primary} />
+          <Ionicons name={language === 'ar' ? "arrow-forward" : "arrow-back"} size={24} color={currentColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: currentColors.text.primary }]}>
           {t('myBookings')}
         </Text>
         <View style={{ width: 40 }} />
@@ -319,14 +323,14 @@ const PastBookingsScreen: React.FC = () => {
         <TouchableOpacity 
           style={[
             styles.tab, 
-            activeTab === 'all' && [styles.activeTab, { borderBottomColor: colors.accent }]
+            activeTab === 'all' && [styles.activeTab, { borderBottomColor: currentColors.accent }]
           ]}
           onPress={() => setActiveTab('all')}
         >
           <Text 
             style={[
               styles.tabText, 
-              { color: activeTab === 'all' ? colors.accent : colors.text.secondary }
+              { color: activeTab === 'all' ? currentColors.accent : currentColors.text.secondary }
             ]}
           >
             {t('all')}
@@ -336,14 +340,14 @@ const PastBookingsScreen: React.FC = () => {
         <TouchableOpacity 
           style={[
             styles.tab, 
-            activeTab === 'active' && [styles.activeTab, { borderBottomColor: colors.accent }]
+            activeTab === 'active' && [styles.activeTab, { borderBottomColor: currentColors.accent }]
           ]}
           onPress={() => setActiveTab('active')}
         >
           <Text 
             style={[
               styles.tabText, 
-              { color: activeTab === 'active' ? colors.accent : colors.text.secondary }
+              { color: activeTab === 'active' ? currentColors.accent : currentColors.text.secondary }
             ]}
           >
             {t('active')}
@@ -353,14 +357,14 @@ const PastBookingsScreen: React.FC = () => {
         <TouchableOpacity 
           style={[
             styles.tab, 
-            activeTab === 'completed' && [styles.activeTab, { borderBottomColor: colors.accent }]
+            activeTab === 'completed' && [styles.activeTab, { borderBottomColor: currentColors.accent }]
           ]}
           onPress={() => setActiveTab('completed')}
         >
           <Text 
             style={[
               styles.tabText, 
-              { color: activeTab === 'completed' ? colors.accent : colors.text.secondary }
+              { color: activeTab === 'completed' ? currentColors.accent : currentColors.text.secondary }
             ]}
           >
             {t('completed')}
@@ -370,14 +374,14 @@ const PastBookingsScreen: React.FC = () => {
         <TouchableOpacity 
           style={[
             styles.tab, 
-            activeTab === 'cancelled' && [styles.activeTab, { borderBottomColor: colors.accent }]
+            activeTab === 'cancelled' && [styles.activeTab, { borderBottomColor: currentColors.accent }]
           ]}
           onPress={() => setActiveTab('cancelled')}
         >
           <Text 
             style={[
               styles.tabText, 
-              { color: activeTab === 'cancelled' ? colors.accent : colors.text.secondary }
+              { color: activeTab === 'cancelled' ? currentColors.accent : currentColors.text.secondary }
             ]}
           >
             {t('cancelled')}
@@ -395,8 +399,8 @@ const PastBookingsScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="calendar-outline" size={80} color={colors.text.secondary} />
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+          <Ionicons name="calendar-outline" size={80} color={currentColors.text.secondary} />
+          <Text style={[styles.emptyText, { color: currentColors.text.secondary }]}>
             {t('noBookings')}
           </Text>
         </View>

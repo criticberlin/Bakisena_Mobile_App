@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   TouchableOpacity, 
   StyleSheet, 
@@ -6,7 +6,15 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  Pressable
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  Easing
+} from 'react-native-reanimated';
 import { ActionButtonProps } from '../types';
 import { useTheme, AppTextWrapper } from '../theme';
 
@@ -19,6 +27,8 @@ interface ExtendedActionButtonProps extends ActionButtonProps {
   size?: 'small' | 'medium' | 'large';
   textKey?: string; // Add support for translation key
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   title,
@@ -33,44 +43,145 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   iconPosition = 'left',
   size = 'medium'
 }) => {
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
+  const [isPressed, setIsPressed] = useState(false);
+  
+  // Animation values
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  
+  // Animation styles
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value
+    };
+  });
+  
+  // Handle press animations
+  const handlePressIn = () => {
+    setIsPressed(true);
+    scale.value = withTiming(0.97, { 
+      duration: 100,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+    });
+  };
+  
+  const handlePressOut = () => {
+    setIsPressed(false);
+    scale.value = withTiming(1, { 
+      duration: 200,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+    });
+  };
   
   // Define button style based on variant and size
-  const buttonStyle: ViewStyle = {
-    ...styles.button,
-    ...(size === 'small' ? styles.smallButton : 
-        size === 'large' ? styles.largeButton : 
-        styles.mediumButton),
-    ...(variant === 'primary' ? styles.primaryButton : 
-        variant === 'secondary' ? styles.secondaryButton : 
-        styles.outlineButton),
-    ...(disabled ? styles.disabledButton : {}),
-    ...(style || {})
+  const getButtonStyle = (): ViewStyle => {
+    // Base styles for each variant
+    const variantStyles = {
+      primary: {
+        backgroundColor: colors.accent,
+        borderWidth: 0,
+      },
+      secondary: {
+        backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+        borderWidth: 0,
+      },
+      outline: {
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderColor: colors.accent,
+      }
+    };
+    
+    // Size styles
+    const sizeStyles = {
+      small: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        minWidth: 80,
+        borderRadius: 12,
+      },
+      medium: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        minWidth: 120,
+        borderRadius: 16,
+      },
+      large: {
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        minWidth: 160, 
+        borderRadius: 18,
+      }
+    };
+    
+    // Combine styles
+    return {
+      ...styles.button,
+      ...sizeStyles[size],
+      ...variantStyles[variant],
+      ...(disabled ? styles.disabledButton : {}),
+      ...(isPressed && variant === 'primary' ? { backgroundColor: colors.accent + 'E6' } : {}),
+    };
   };
 
   // Define text style based on variant and size
-  const textStyleFinal: TextStyle = {
-    ...styles.text,
-    ...(size === 'small' ? styles.smallText : 
-        size === 'large' ? styles.largeText : 
-        styles.mediumText),
-    ...(variant === 'primary' ? styles.primaryText : 
-        variant === 'secondary' ? styles.secondaryText : 
-        styles.outlineText),
-    ...(disabled ? styles.disabledText : {}),
-    ...(textStyle || {})
+  const getTextStyle = (): TextStyle => {
+    // Base text styles for each variant
+    const variantTextStyles = {
+      primary: {
+        color: '#FFFFFF',
+      },
+      secondary: {
+        color: themeMode === 'dark' ? colors.text.primary : colors.primary,
+      },
+      outline: {
+        color: colors.accent,
+      }
+    };
+    
+    // Size text styles
+    const sizeTextStyles = {
+      small: {
+        fontSize: 14,
+      },
+      medium: {
+        fontSize: 16,
+      },
+      large: {
+        fontSize: 18,
+      }
+    };
+    
+    // Combine styles
+    return {
+      ...styles.text,
+      ...sizeTextStyles[size],
+      ...variantTextStyles[variant],
+      ...(disabled ? styles.disabledText : {}),
+    };
   };
 
+  // Determine loading color based on variant
   const loadingColor = variant === 'outline' 
     ? colors.accent 
-    : (variant === 'secondary' ? colors.primary : colors.secondary);
+    : (variant === 'secondary' ? colors.primary : '#FFFFFF');
 
   return (
-    <TouchableOpacity
-      style={buttonStyle}
+    <AnimatedPressable
+      style={[
+        getButtonStyle(),
+        style,
+        animatedStyle
+      ]}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || isLoading}
-      activeOpacity={0.8}
+      android_ripple={{ 
+        color: 'transparent',
+      }}
     >
       {isLoading ? (
         <ActivityIndicator 
@@ -84,7 +195,7 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
           )}
           <AppTextWrapper 
             variant="button" 
-            style={textStyleFinal}
+            style={[getTextStyle(), textStyle]}
             textKey={textKey as any}
           >
             {title}
@@ -94,83 +205,35 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
           )}
         </View>
       )}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3.0,
-    elevation: 4,
-  },
-  smallButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    minWidth: 80,
-  },
-  mediumButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    minWidth: 120,
-  },
-  largeButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    minWidth: 160,
+    elevation: 0,
+    overflow: 'hidden',
   },
   contentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButton: {
-    backgroundColor: '#F9B233', // Will be overridden by theme
-  },
-  secondaryButton: {
-    backgroundColor: '#FFFFFF', // Will be overridden by theme
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#F9B233', // Will be overridden by theme
-  },
   disabledButton: {
     backgroundColor: '#8E8E9F',
-    opacity: 0.7,
-    shadowOpacity: 0,
+    opacity: 0.5,
+    borderWidth: 0,
   },
   text: {
-    fontWeight: '600' as const, // Use string literal for fontWeight
+    fontWeight: '600' as const,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-  smallText: {
-    fontSize: 14,
-  },
-  mediumText: {
-    fontSize: 16,
-  },
-  largeText: {
-    fontSize: 18,
-  },
-  primaryText: {
-    color: '#FFFFFF', // Will be overridden by theme
-  },
-  secondaryText: {
-    color: '#1C1C3C', // Will be overridden by theme
-  },
-  outlineText: {
-    color: '#F9B233', // Will be overridden by theme
-  },
   disabledText: {
-    color: '#A0A0B8',
+    color: '#FFFFFF',
   },
   iconLeft: {
     marginRight: 8,

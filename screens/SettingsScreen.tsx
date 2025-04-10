@@ -17,12 +17,17 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
+import RTLWrapper from '../components/layout/RTLWrapper';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
-  const { themeMode, toggleTheme, colors, switchStyles } = useTheme();
+  const { themeMode, colors, toggleTheme, switchStyles } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   const { language, setLanguage, t } = useLanguage();
 
   const handleLanguageChange = async () => {
@@ -42,38 +47,38 @@ const SettingsScreen: React.FC = () => {
   return (
     <AppLayout>
       {/* Header */}
-      <View style={styles.header}>
+      <RTLWrapper style={styles.header} ignoreArabic={true}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={currentColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: currentColors.text.primary }]}>
           {t('settings')}
         </Text>
         <View style={{ width: 24 }} />
-      </View>
+      </RTLWrapper>
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* App Settings Section */}
-        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
+        <Text style={[styles.sectionTitle, { color: currentColors.text.secondary }]}>
           {t('appSettings')}
         </Text>
         
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.settingsBlur}>
-          <View style={[styles.settingsContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.settingsContainer, { backgroundColor: currentColors.surface }]}>
             {/* Theme Toggle */}
-            <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
-              <Ionicons name="moon-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]} ignoreArabic={true}>
+              <Ionicons name="moon-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('darkMode')}
                 </Text>
-                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                <Text style={[styles.settingDescription, { color: currentColors.text.secondary }]}>
                   {themeMode === 'dark' ? t('darkModeEnabled') : t('lightModeEnabled')}
                 </Text>
               </View>
@@ -84,42 +89,41 @@ const SettingsScreen: React.FC = () => {
                 thumbColor={switchStyles.thumbColor(themeMode === 'dark')}
                 ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
-            </View>
+            </RTLWrapper>
             
             {/* Language Selection */}
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={handleLanguageChange}
-            >
-              <Ionicons name="language-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={styles.settingItem} ignoreArabic={true}>
+              <Ionicons name="language-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('language')}
                 </Text>
-                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                <Text style={[styles.settingDescription, { color: currentColors.text.secondary }]}>
                   {language === 'en' ? t('english') : t('arabic')}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={handleLanguageChange}>
+                <Ionicons name="chevron-forward" size={20} color={currentColors.text.secondary} />
+              </TouchableOpacity>
+            </RTLWrapper>
           </View>
         </BlurView>
         
         {/* Notifications Section */}
-        <Text style={[styles.sectionTitle, { color: colors.text.secondary, marginTop: 24 }]}>
+        <Text style={[styles.sectionTitle, { color: currentColors.text.secondary, marginTop: 24 }]}>
           {t('notifications')}
         </Text>
         
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.settingsBlur}>
-          <View style={[styles.settingsContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.settingsContainer, { backgroundColor: currentColors.surface }]}>
             {/* Push Notifications */}
-            <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
-              <Ionicons name="notifications-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]} ignoreArabic={true}>
+              <Ionicons name="notifications-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('pushNotifications')}
                 </Text>
-                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                <Text style={[styles.settingDescription, { color: currentColors.text.secondary }]}>
                   {t('notificationsDescription')}
                 </Text>
               </View>
@@ -129,16 +133,16 @@ const SettingsScreen: React.FC = () => {
                 thumbColor={switchStyles.thumbColor(true)}
                 ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
-            </View>
+            </RTLWrapper>
             
             {/* Email Notifications */}
-            <View style={styles.settingItem}>
-              <Ionicons name="mail-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={styles.settingItem} ignoreArabic={true}>
+              <Ionicons name="mail-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('emailNotifications')}
                 </Text>
-                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                <Text style={[styles.settingDescription, { color: currentColors.text.secondary }]}>
                   {t('emailNotificationsDescription')}
                 </Text>
               </View>
@@ -148,53 +152,51 @@ const SettingsScreen: React.FC = () => {
                 thumbColor={switchStyles.thumbColor(true)}
                 ios_backgroundColor={switchStyles.ios_backgroundColor}
               />
-            </View>
+            </RTLWrapper>
           </View>
         </BlurView>
         
         {/* About Section */}
-        <Text style={[styles.sectionTitle, { color: colors.text.secondary, marginTop: 24 }]}>
+        <Text style={[styles.sectionTitle, { color: currentColors.text.secondary, marginTop: 24 }]}>
           {t('aboutApp')}
         </Text>
         
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.settingsBlur}>
-          <View style={[styles.settingsContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.settingsContainer, { backgroundColor: currentColors.surface }]}>
             {/* App Version */}
-            <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
-              <Ionicons name="information-circle-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]} ignoreArabic={true}>
+              <Ionicons name="information-circle-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('version')}
                 </Text>
-                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                <Text style={[styles.settingDescription, { color: currentColors.text.secondary }]}>
                   1.0.0
                 </Text>
               </View>
-            </View>
+            </RTLWrapper>
             
             {/* Terms and Privacy */}
-            <TouchableOpacity 
-              style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}
-            >
-              <Ionicons name="document-text-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]} ignoreArabic={true}>
+              <Ionicons name="document-text-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('termsOfService')}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={20} color={currentColors.text.secondary} />
+            </RTLWrapper>
             
             {/* Privacy Policy */}
-            <TouchableOpacity style={styles.settingItem}>
-              <Ionicons name="shield-checkmark-outline" size={22} color={colors.accent} style={styles.settingIcon} />
+            <RTLWrapper style={styles.settingItem} ignoreArabic={true}>
+              <Ionicons name="shield-checkmark-outline" size={22} color={currentColors.accent} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: colors.text.primary }]}>
+                <Text style={[styles.settingTitle, { color: currentColors.text.primary }]}>
                   {t('privacyPolicy')}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={20} color={currentColors.text.secondary} />
+            </RTLWrapper>
           </View>
         </BlurView>
       </ScrollView>

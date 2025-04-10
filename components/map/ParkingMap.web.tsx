@@ -9,16 +9,37 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ParkingMapProps, cairoParkingSpots, COLORS, ParkingSpot } from './constants';
+import { ParkingMapProps, cairoParkingSpots, ParkingSpot } from './constants';
+import { useTheme } from '../../theme/ThemeContext';
+import { AppTextWrapper } from '../../theme';
+import theme from '../../theme/theme';
 
 // Adjust sizes based on screen dimensions for responsiveness
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const scale = SCREEN_WIDTH / 1024; // Based on standard desktop width
+// Apply global scaling factor
+const SCALED_SCREEN_WIDTH = SCREEN_WIDTH * theme.GLOBAL_SCALE;
+// Define isSmallScreen at module level for use in styles
+const isSmallScreen = SCALED_SCREEN_WIDTH < 768 * theme.GLOBAL_SCALE;
 
+// Custom normalize function that incorporates the global scale
 const normalize = (size: number) => {
-  const newSize = size * (scale > 1 ? 1 : scale);
-  return Math.round(newSize);
+  // Apply responsive scaling based on screen size
+  const baseScale = SCALED_SCREEN_WIDTH / 1024;
+  const responsiveScale = baseScale > 1 ? 1 : baseScale;
+  // Apply the theme's global scaling factor
+  return Math.round(size * responsiveScale);
 };
+
+// Update all fixed dimensions in styles
+const gridCellSize = theme.scale(40);
+const gridCellMargin = theme.scale(8);
+const iconSmall = theme.scale(14);
+const iconMedium = theme.scale(20);
+const iconLarge = theme.scale(24);
+const paddingBase = theme.scale(15);
+const borderRadiusMd = theme.scale(12);
+const borderRadiusSm = theme.scale(8);
+const borderRadiusCircle = theme.scale(20);
 
 // Web implementation of ParkingMap (without using react-native-maps)
 const ParkingMap: React.FC<ParkingMapProps> = ({
@@ -32,9 +53,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
 }) => {
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [activeTab, setActiveTab] = useState('Parking');
-
-  // Adjust sizes based on screen dimensions for responsiveness
-  const isSmallScreen = SCREEN_WIDTH < 768;
+  const { colors, themeMode } = useTheme();
 
   // Function to handle spot selection
   const handleSpotPress = (spot: ParkingSpot) => {
@@ -83,8 +102,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Smart Parking System</Text>
-        <Text style={styles.headerSubtitle}>Find and reserve parking spaces in real-time</Text>
+        <AppTextWrapper variant="title" style={styles.headerTitle}>Smart Parking System</AppTextWrapper>
+        <AppTextWrapper variant="body" style={styles.headerSubtitle}>Find and reserve parking spaces in real-time</AppTextWrapper>
       </View>
       
       <ScrollView style={styles.scrollView}>
@@ -92,63 +111,63 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
           {/* Left Side Content */}
           <View style={styles.leftContent}>
             {/* Legend */}
-            <View style={styles.legendContainer}>
-              <Text style={styles.sectionTitle}>Parking Legend</Text>
+            <View style={[styles.legendContainer, { backgroundColor: colors.surface }]}>
+              <AppTextWrapper variant="subtitle" style={styles.sectionTitle}>Parking Legend</AppTextWrapper>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: COLORS.available }]} />
-                <Text style={styles.legendText}>Available Spot</Text>
+                <View style={[styles.legendDot, { backgroundColor: colors.text.secondary }]} />
+                <AppTextWrapper style={styles.legendText}>Available Spot</AppTextWrapper>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: COLORS.reserved }]} />
-                <Text style={styles.legendText}>Reserved Spot</Text>
+                <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
+                <AppTextWrapper style={styles.legendText}>Reserved Spot</AppTextWrapper>
               </View>
               <View style={styles.legendItem}>
-                <View style={styles.userLocationDot}>
-                  <Ionicons name="car" size={14} color="white" />
+                <View style={[styles.userLocationDot, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="car" size={14} color={colors.secondary} />
                 </View>
-                <Text style={styles.legendText}>Your Location</Text>
+                <AppTextWrapper style={styles.legendText}>Your Location</AppTextWrapper>
               </View>
             </View>
             
             {/* Timing Information */}
-            <View style={styles.timeCard}>
-              <Text style={styles.sectionTitle}>Parking Times</Text>
+            <View style={[styles.timeCard, { backgroundColor: colors.surface }]}>
+              <AppTextWrapper variant="subtitle" style={styles.sectionTitle}>Parking Times</AppTextWrapper>
               <View style={styles.timeRow}>
                 <View style={styles.timeItem}>
-                  <Ionicons name="time-outline" size={20} color={COLORS.white} />
-                  <Text style={styles.timeLabel}>Entry Time</Text>
-                  <Text style={styles.timeValue}>{entryTime}</Text>
+                  <Ionicons name="time-outline" size={20} color={colors.text.primary} />
+                  <AppTextWrapper style={styles.timeLabel}>Entry Time</AppTextWrapper>
+                  <AppTextWrapper style={styles.timeValue}>{entryTime}</AppTextWrapper>
                 </View>
                 <View style={styles.timeItem}>
-                  <Ionicons name="exit-outline" size={20} color={COLORS.white} />
-                  <Text style={styles.timeLabel}>Estimated Exit</Text>
-                  <Text style={styles.timeValue}>{estimatedExitTime}</Text>
+                  <Ionicons name="exit-outline" size={20} color={colors.text.primary} />
+                  <AppTextWrapper style={styles.timeLabel}>Estimated Exit</AppTextWrapper>
+                  <AppTextWrapper style={styles.timeValue}>{estimatedExitTime}</AppTextWrapper>
                 </View>
               </View>
             </View>
             
             {/* Features */}
-            <View style={styles.featuresCard}>
-              <Text style={styles.sectionTitle}>Features</Text>
+            <View style={[styles.featuresCard, { backgroundColor: colors.surface }]}>
+              <AppTextWrapper variant="subtitle" style={styles.sectionTitle}>Features</AppTextWrapper>
               <View style={styles.featureItem}>
-                <Ionicons name="bookmark" size={20} color={COLORS.white} />
+                <Ionicons name="bookmark" size={20} color={colors.text.primary} />
                 <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Reserve Your Spot</Text>
-                  <Text style={styles.featureDescription}>Pre-book parking spaces to save time</Text>
+                  <AppTextWrapper variant="subtitle" style={styles.featureTitle}>Reserve Your Spot</AppTextWrapper>
+                  <AppTextWrapper style={styles.featureDescription}>Pre-book parking spaces to save time</AppTextWrapper>
                 </View>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="notifications" size={20} color={COLORS.white} />
+                <Ionicons name="notifications" size={20} color={colors.text.primary} />
                 <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Real-time Updates</Text>
-                  <Text style={styles.featureDescription}>Get alerts when spots become available</Text>
+                  <AppTextWrapper variant="subtitle" style={styles.featureTitle}>Real-time Updates</AppTextWrapper>
+                  <AppTextWrapper style={styles.featureDescription}>Get alerts when spots become available</AppTextWrapper>
                 </View>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="navigate" size={20} color={COLORS.white} />
+                <Ionicons name="navigate" size={20} color={colors.text.primary} />
                 <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Navigation</Text>
-                  <Text style={styles.featureDescription}>Get directions to your reserved spot</Text>
+                  <AppTextWrapper variant="subtitle" style={styles.featureTitle}>Navigation</AppTextWrapper>
+                  <AppTextWrapper style={styles.featureDescription}>Get directions to your reserved spot</AppTextWrapper>
                 </View>
               </View>
             </View>
@@ -156,8 +175,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
           
           {/* Right Side Content - Parking Grid Map */}
           <View style={styles.rightContent}>
-            <View style={styles.mapContainer}>
-              <Text style={styles.sectionTitle}>Parking Map</Text>
+            <View style={[styles.mapContainer, { backgroundColor: colors.surface }]}>
+              <AppTextWrapper variant="subtitle" style={styles.sectionTitle}>Parking Map</AppTextWrapper>
               
               {/* Simplified Grid View for Web */}
               <View style={styles.gridContainer}>
@@ -166,14 +185,14 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                   <View style={styles.gridRow}>
                     <View style={styles.gridCell} />
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.availableSpot]} 
+                      style={[styles.parkingSpot, { backgroundColor: colors.text.secondary }]} 
                       onPress={() => handleSpotPress(parkingSpots[0])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
                     </TouchableOpacity>
                     <View style={styles.gridCell} />
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.availableSpot]}
+                      style={[styles.parkingSpot, { backgroundColor: colors.text.secondary }]}
                       onPress={() => handleSpotPress(parkingSpots[3])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
@@ -185,8 +204,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                   <View style={styles.gridRow}>
                     <View style={styles.gridCell} />
                     <View style={styles.gridCell} />
-                    <View style={styles.userLocation}>
-                      <Ionicons name="car" size={22} color="white" />
+                    <View style={[styles.userLocation, { backgroundColor: colors.primary }]}>
+                      <Ionicons name="car" size={22} color={colors.secondary} />
                     </View>
                     <View style={styles.gridCell} />
                     <View style={styles.gridCell} />
@@ -195,7 +214,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                   {/* Row 3 */}
                   <View style={styles.gridRow}>
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.availableSpot]}
+                      style={[styles.parkingSpot, { backgroundColor: colors.text.secondary }]}
                       onPress={() => handleSpotPress(parkingSpots[2])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
@@ -204,7 +223,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     <View style={styles.gridCell} />
                     <View style={styles.gridCell} />
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.availableSpot]}
+                      style={[styles.parkingSpot, { backgroundColor: colors.text.secondary }]}
                       onPress={() => handleSpotPress(parkingSpots[3])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
@@ -215,14 +234,14 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                   <View style={styles.gridRow}>
                     <View style={styles.gridCell} />
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.reservedSpot]}
+                      style={[styles.parkingSpot, { backgroundColor: colors.accent }]}
                       onPress={() => handleSpotPress(parkingSpots[1])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
                     </TouchableOpacity>
                     <View style={styles.gridCell} />
                     <TouchableOpacity 
-                      style={[styles.parkingSpot, styles.reservedSpot]}
+                      style={[styles.parkingSpot, { backgroundColor: colors.accent }]}
                       onPress={() => handleSpotPress(parkingSpots[4])}
                     >
                       <Text style={styles.spotLabel}>P</Text>
@@ -249,7 +268,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                 <View style={styles.spotInfoHeader}>
                   <Text style={styles.spotInfoTitle}>{selectedSpot.name || `Spot ${selectedSpot.id}`}</Text>
                   <View style={[styles.statusBadge, {
-                    backgroundColor: selectedSpot.status === 'available' ? COLORS.success : COLORS.reserved
+                    backgroundColor: selectedSpot.status === 'available' ? colors.success : colors.accent
                   }]}>
                     <Text style={styles.statusBadgeText}>
                       {selectedSpot.status.charAt(0).toUpperCase() + selectedSpot.status.slice(1)}
@@ -260,22 +279,22 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                 <View style={styles.spotDetails}>
                   {selectedSpot.floor && (
                     <View style={styles.spotDetailItem}>
-                      <Ionicons name="layers-outline" size={16} color={COLORS.subtext} />
-                      <Text style={styles.spotDetailText}>Floor: {selectedSpot.floor}</Text>
+                      <Ionicons name="layers-outline" size={16} color={colors.text.secondary} />
+                      <AppTextWrapper style={styles.spotDetailText}>Floor: {selectedSpot.floor}</AppTextWrapper>
                     </View>
                   )}
                   
                   {selectedSpot.price && (
                     <View style={styles.spotDetailItem}>
-                      <Ionicons name="cash-outline" size={16} color={COLORS.subtext} />
-                      <Text style={styles.spotDetailText}>Price: ${selectedSpot.price}/hr</Text>
+                      <Ionicons name="cash-outline" size={16} color={colors.text.secondary} />
+                      <AppTextWrapper style={styles.spotDetailText}>Price: ${selectedSpot.price}/hr</AppTextWrapper>
                     </View>
                   )}
                   
                   {selectedSpot.distance && (
                     <View style={styles.spotDetailItem}>
-                      <Ionicons name="location-outline" size={16} color={COLORS.subtext} />
-                      <Text style={styles.spotDetailText}>Distance: {selectedSpot.distance} km</Text>
+                      <Ionicons name="location-outline" size={16} color={colors.text.secondary} />
+                      <AppTextWrapper style={styles.spotDetailText}>Distance: {selectedSpot.distance} km</AppTextWrapper>
                     </View>
                   )}
                 </View>
@@ -283,21 +302,21 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                 <TouchableOpacity 
                   style={[
                     styles.reserveButton,
-                    selectedSpot.status === 'reserved' && { backgroundColor: COLORS.disabled }
+                    selectedSpot.status === 'reserved' && { backgroundColor: colors.text.disabled }
                   ]}
                   onPress={() => handleReserveSpot(selectedSpot)}
                   disabled={selectedSpot.status === 'reserved'}
                 >
-                  <Text style={styles.reserveButtonText}>
+                  <AppTextWrapper style={styles.reserveButtonText}>
                     {selectedSpot.status === 'available' ? 'Reserve This Spot' : 'Spot Reserved'}
-                  </Text>
+                  </AppTextWrapper>
                 </TouchableOpacity>
               </View>
             )}
 
             {/* List of Available Spots */}
             <View style={styles.availableSpotsCard}>
-              <Text style={styles.sectionTitle}>Available Spots</Text>
+              <AppTextWrapper variant="subtitle" style={styles.sectionTitle}>Available Spots</AppTextWrapper>
               <ScrollView style={styles.spotsScrollView}>
                 {parkingSpots.map(spot => (
                   <TouchableOpacity 
@@ -311,21 +330,21 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     <View style={styles.spotItemLeft}>
                       <View style={[
                         styles.spotItemDot,
-                        { backgroundColor: spot.status === 'available' ? COLORS.available : COLORS.reserved }
+                        { backgroundColor: spot.status === 'available' ? colors.success : colors.accent }
                       ]} />
-                      <Text style={styles.spotItemName}>{spot.name || `Spot ${spot.id}`}</Text>
+                      <AppTextWrapper style={styles.spotItemName}>{spot.name || `Spot ${spot.id}`}</AppTextWrapper>
                     </View>
                     
                     <View style={styles.spotItemRight}>
                       {spot.distance && (
-                        <Text style={styles.spotItemDistance}>{spot.distance} km</Text>
+                        <AppTextWrapper style={styles.spotItemDistance}>{spot.distance} km</AppTextWrapper>
                       )}
-                      <Text style={[
+                      <AppTextWrapper style={[
                         styles.spotItemStatus,
-                        { color: spot.status === 'available' ? COLORS.success : COLORS.reserved }
+                        { color: spot.status === 'available' ? colors.success : colors.accent }
                       ]}>
                         {spot.status.charAt(0).toUpperCase() + spot.status.slice(1)}
-                      </Text>
+                      </AppTextWrapper>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -334,65 +353,6 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
           </View>
         </View>
       </ScrollView>
-      
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNavBar}>
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Monitor' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Monitor')}
-        >
-          <Ionicons 
-            name="car" 
-            size={24} 
-            color={activeTab === 'Monitor' ? COLORS.white : COLORS.subtext} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Monitor' && styles.activeNavText]}>
-            Monitor
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Parking' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Parking')}
-        >
-          <Ionicons 
-            name="compass" 
-            size={24} 
-            color={activeTab === 'Parking' ? COLORS.white : COLORS.subtext} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Parking' && styles.activeNavText]}>
-            Parking
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Connected' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Connected')}
-        >
-          <Ionicons 
-            name="link" 
-            size={24} 
-            color={activeTab === 'Connected' ? COLORS.white : COLORS.subtext} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Connected' && styles.activeNavText]}>
-            Connected
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.navButton, activeTab === 'Account' && styles.activeNavButton]}
-          onPress={() => handleTabPress('Account')}
-        >
-          <Ionicons 
-            name="person" 
-            size={24} 
-            color={activeTab === 'Account' ? COLORS.white : COLORS.subtext} 
-          />
-          <Text style={[styles.navButtonText, activeTab === 'Account' && styles.activeNavText]}>
-            Account
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -400,144 +360,125 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
   },
   headerContainer: {
-    padding: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    padding: theme.scale(24),
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: theme.scale(28),
     fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 5,
+    marginBottom: theme.scale(5),
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: COLORS.subtext,
+    fontSize: theme.scale(16),
   },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 15,
+    flexDirection: isSmallScreen ? 'column' : 'row',
+    padding: isSmallScreen ? theme.scale(16) : theme.scale(24),
   },
   leftContent: {
-    width: SCREEN_WIDTH < 1024 ? '100%' : '30%',
-    marginRight: SCREEN_WIDTH < 1024 ? 0 : 20,
-    marginBottom: SCREEN_WIDTH < 1024 ? 20 : 0,
+    flex: isSmallScreen ? undefined : 1,
+    marginRight: isSmallScreen ? 0 : theme.scale(16),
+    marginBottom: isSmallScreen ? theme.scale(16) : 0,
   },
   rightContent: {
-    width: SCREEN_WIDTH < 1024 ? '100%' : '65%',
+    flex: isSmallScreen ? undefined : 2,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: theme.scale(18),
     fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 12,
+    marginBottom: theme.scale(12),
   },
   // Legend styles
   legendContainer: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
+    marginBottom: paddingBase,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: theme.scale(10),
   },
   legendDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: theme.scale(16),
+    height: theme.scale(16),
+    borderRadius: theme.scale(8),
+    marginRight: theme.scale(10),
   },
   userLocationDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    marginRight: 10,
+    width: theme.scale(24),
+    height: theme.scale(24),
+    borderRadius: theme.scale(12),
+    marginRight: theme.scale(10),
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   legendText: {
-    color: COLORS.text,
-    fontSize: 14,
+    fontSize: theme.scale(14),
   },
   // Time card styles
   timeCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
+    marginBottom: paddingBase,
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingTop: theme.scale(5),
   },
   timeItem: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
   },
   timeLabel: {
-    color: COLORS.subtext,
-    fontSize: 14,
-    marginVertical: 6,
+    fontSize: theme.scale(14),
+    marginVertical: theme.scale(6),
   },
   timeValue: {
-    color: COLORS.white,
-    fontSize: 18,
+    fontSize: theme.scale(18),
     fontWeight: 'bold',
   },
   // Features card styles
   featuresCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 15,
+    marginBottom: paddingBase,
   },
   featureTextContainer: {
-    marginLeft: 12,
+    marginLeft: theme.scale(12),
     flex: 1,
   },
   featureTitle: {
-    color: COLORS.white,
-    fontSize: 16,
+    fontSize: theme.scale(16),
     fontWeight: 'bold',
-    marginBottom: 3,
+    marginBottom: theme.scale(3),
   },
   featureDescription: {
-    color: COLORS.subtext,
-    fontSize: 14,
+    fontSize: theme.scale(14),
   },
   // Map styles
   mapContainer: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
+    marginBottom: theme.scale(20),
   },
   gridContainer: {
     backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 20,
+    borderRadius: theme.scale(10),
+    padding: theme.scale(20),
     position: 'relative',
-    height: 320,
+    height: theme.scale(320),
   },
   parkingGrid: {
     flex: 1,
@@ -546,210 +487,177 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 10,
+    marginVertical: theme.scale(10),
   },
   gridCell: {
-    width: 40,
-    height: 40,
-    margin: 8,
+    width: gridCellSize,
+    height: gridCellSize,
+    margin: gridCellMargin,
   },
   parkingSpot: {
-    width: 40,
-    height: 40,
-    borderRadius: 5,
+    width: gridCellSize,
+    height: gridCellSize,
+    borderRadius: theme.scale(5),
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 8,
+    margin: gridCellMargin,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: theme.scale(2),
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3,
+    shadowRadius: theme.scale(3),
     elevation: 3,
   },
   availableSpot: {
-    backgroundColor: COLORS.available,
+    // Will be set dynamically
   },
   reservedSpot: {
-    backgroundColor: COLORS.reserved,
+    // Will be set dynamically
   },
   spotLabel: {
-    fontSize: 18,
+    fontSize: theme.scale(18),
     fontWeight: 'bold',
     color: '#333',
   },
   userLocation: {
-    width: 40,
-    height: 40,
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
+    width: gridCellSize,
+    height: gridCellSize,
+    borderRadius: borderRadiusCircle,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  mapControls: {
-    position: 'absolute',
-    right: 15,
-    bottom: 15,
-  },
-  controlButton: {
-    width: 36,
-    height: 36,
-    backgroundColor: 'white',
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
   },
   // Spot info styles
   spotInfoCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
+    marginBottom: theme.scale(20),
   },
   spotInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: theme.scale(12),
   },
   spotInfoTitle: {
-    fontSize: 18,
+    fontSize: theme.scale(18),
     fontWeight: 'bold',
-    color: COLORS.white,
   },
   statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    paddingHorizontal: theme.scale(10),
+    paddingVertical: theme.scale(3),
+    borderRadius: theme.scale(12),
+    alignSelf: 'flex-start',
+    marginTop: theme.scale(5),
+    marginBottom: theme.scale(10),
   },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: theme.scale(12),
     fontWeight: 'bold',
-    color: COLORS.white,
   },
   spotDetails: {
-    marginBottom: 15,
+    marginVertical: theme.scale(10),
   },
   spotDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: theme.scale(8),
   },
   spotDetailText: {
-    color: COLORS.text,
-    fontSize: 14,
-    marginLeft: 10,
+    fontSize: theme.scale(14),
+    marginLeft: theme.scale(10),
   },
   reserveButton: {
-    backgroundColor: COLORS.primary,
-    padding: 12,
-    borderRadius: 8,
+    padding: theme.scale(12),
+    borderRadius: borderRadiusSm,
     alignItems: 'center',
   },
   reservedButton: {
-    backgroundColor: COLORS.disabled,
+    // Will be set dynamically
   },
   reserveButtonText: {
-    color: COLORS.white,
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: theme.scale(16),
   },
   // Available spots list
   availableSpotsCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: borderRadiusMd,
+    padding: paddingBase,
+    marginBottom: theme.scale(20),
   },
   spotsScrollView: {
-    maxHeight: 200,
+    maxHeight: theme.scale(250),
   },
   spotItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: theme.scale(10),
+    borderRadius: borderRadiusSm,
+    marginBottom: theme.scale(8),
   },
   selectedSpotItem: {
     backgroundColor: 'rgba(59, 130, 246, 0.2)', // Light blue background
     borderWidth: 1,
-    borderColor: COLORS.accent,
   },
   spotItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   spotItemDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: theme.scale(10),
+    height: theme.scale(10),
+    borderRadius: theme.scale(5),
+    marginRight: theme.scale(10),
   },
   spotItemName: {
-    color: COLORS.white,
-    fontSize: 14,
+    fontSize: theme.scale(14),
     fontWeight: '500',
   },
   spotItemRight: {
     alignItems: 'flex-end',
   },
   spotItemDistance: {
-    color: COLORS.subtext,
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: theme.scale(12),
+    marginBottom: theme.scale(2),
   },
   spotItemStatus: {
-    fontSize: 12,
+    fontSize: theme.scale(12),
     fontWeight: 'bold',
   },
-  // Bottom navigation
-  bottomNavBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  mapControls: {
+    position: 'absolute',
+    right: paddingBase,
+    bottom: paddingBase,
   },
-  navButton: {
-    flex: 1,
+  controlButton: {
+    width: theme.scale(36),
+    height: theme.scale(36),
+    backgroundColor: 'white',
+    borderRadius: theme.scale(18),
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: theme.scale(8),
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: theme.scale(2),
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: theme.scale(3),
+    elevation: 3,
   },
-  activeNavButton: {
-    borderTopWidth: 2,
-    borderTopColor: COLORS.secondary,
-    marginTop: -2,
+  navigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.scale(15),
+    paddingVertical: theme.scale(10),
+    borderBottomWidth: 1,
   },
-  navButtonText: {
-    color: COLORS.subtext,
-    fontSize: 14,
-    marginTop: 5,
-  },
-  activeNavText: {
-    color: COLORS.white,
+  navTitle: {
+    fontSize: theme.scale(18),
     fontWeight: 'bold',
   },
 });

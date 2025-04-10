@@ -1,9 +1,60 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
 import { ReservationCardProps } from '../../types';
 import theme from '../../theme/theme';
+import { useTheme } from '../../theme/ThemeContext';
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+// Create a safe theme with proper fallbacks
+const safeColors = {
+  primary: theme.colors.primary || '#0F1544',
+  secondary: theme.colors.secondary || '#2563EB',
+  accent: theme.colors.accent || '#F59E0B',
+  error: theme.colors.error || '#EF4444',
+  warning: theme.colors.warning || '#F59E0B',
+  info: theme.colors.info || '#3B82F6',
+  success: theme.colors.success || '#10B981',
+  surface: theme.colors.light?.surface || '#FFFFFF',
+  divider: theme.colors.light?.divider || '#E5E7EB',
+  status: {
+    available: theme.colors.status?.available || '#10B981',
+    occupied: theme.colors.status?.occupied || '#EF4444',
+    reserved: theme.colors.status?.reserved || '#F59E0B',
+    outOfService: theme.colors.status?.outOfService || '#6B7280'
+  },
+  text: {
+    primary: theme.colors.light?.text?.primary || '#111827',
+    secondary: theme.colors.light?.text?.secondary || '#4B5563'
+  }
+};
+
+const safeShadows = {
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  }
+};
 
 const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onPress }) => {
+  const { themeMode, colors } = useTheme();
+  
+  // Current theme colors
+  const currentColors = themeMode === 'dark' ? colors.dark : colors.light;
+  
+  // Animation value for press effect
+  const scale = useSharedValue(1);
+  
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -27,7 +78,21 @@ const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onPress 
       case 'CANCELLED':
         return theme.colors.error;
       default:
-        return theme.colors.text.secondary;
+        return currentColors.text.secondary;
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = () => {
+    switch (reservation.status) {
+      case 'ACTIVE':
+        return 'checkmark-circle';
+      case 'COMPLETED':
+        return 'time-outline';
+      case 'CANCELLED':
+        return 'close-circle';
+      default:
+        return 'help-circle';
     }
   };
 
@@ -41,7 +106,21 @@ const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onPress 
       case 'REFUNDED':
         return theme.colors.info;
       default:
-        return theme.colors.text.secondary;
+        return currentColors.text.secondary;
+    }
+  };
+
+  // Get payment status icon
+  const getPaymentStatusIcon = () => {
+    switch (reservation.paymentStatus) {
+      case 'PAID':
+        return 'checkmark-circle';
+      case 'PENDING':
+        return 'time-outline';
+      case 'REFUNDED':
+        return 'arrow-undo-circle';
+      default:
+        return 'help-circle';
     }
   };
 
@@ -61,72 +140,136 @@ const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onPress 
     }
   };
 
+  // Animated style for press effect
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }]
+    };
+  });
+
+  // Handle press animations
+  const handlePressIn = () => {
+    scale.value = withTiming(0.98, { duration: 100 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15 });
+  };
+
   return (
-    <TouchableOpacity 
-      style={[styles.card, { borderLeftColor: getStatusColor() }]} 
+    <AnimatedTouchable 
+      style={[
+        styles.card, 
+        { 
+          borderLeftColor: getStatusColor(),
+          backgroundColor: currentColors.surface,
+          ...theme.shadows.md
+        },
+        animatedStyle
+      ]} 
       onPress={onPress}
-      activeOpacity={0.8}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={0.9}
     >
       {/* Header with status */}
       <View style={styles.header}>
         <View style={styles.reservationId}>
-          <Text style={styles.reservationIdLabel}>Booking ID</Text>
-          <Text style={styles.reservationIdValue}>{reservation.id}</Text>
+          <Text style={[styles.reservationIdLabel, { color: currentColors.text.secondary }]}>
+            Booking ID
+          </Text>
+          <Text style={[styles.reservationIdValue, { color: currentColors.text.primary }]}>
+            {reservation.id}
+          </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-          <Text style={styles.statusText}>{reservation.status}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '20' }]}>
+          <Ionicons name={getStatusIcon()} size={14} color={getStatusColor()} style={styles.statusIcon} />
+          <Text style={[styles.statusText, { color: getStatusColor() }]}>{reservation.status}</Text>
         </View>
       </View>
 
       {/* Time section */}
       <View style={styles.timeSection}>
         <View style={styles.timeColumn}>
-          <Text style={styles.timeLabel}>Start Time</Text>
-          <Text style={styles.timeValue}>{formatDate(reservation.startTime)}</Text>
+          <View style={styles.timeIconWrapper}>
+            <Ionicons name="time-outline" size={14} color={colors.accent} />
+            <Text style={[styles.timeLabel, { color: currentColors.text.secondary }]}>
+              Start Time
+            </Text>
+          </View>
+          <Text style={[styles.timeValue, { color: currentColors.text.primary }]}>
+            {formatDate(reservation.startTime)}
+          </Text>
         </View>
         <View style={styles.timeColumn}>
-          <Text style={styles.timeLabel}>End Time</Text>
-          <Text style={styles.timeValue}>{formatDate(reservation.endTime)}</Text>
+          <View style={styles.timeIconWrapper}>
+            <Ionicons name="flag-outline" size={14} color={colors.accent} />
+            <Text style={[styles.timeLabel, { color: currentColors.text.secondary }]}>
+              End Time
+            </Text>
+          </View>
+          <Text style={[styles.timeValue, { color: currentColors.text.primary }]}>
+            {formatDate(reservation.endTime)}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: currentColors.divider }]} />
 
       {/* Details section */}
       <View style={styles.detailsRow}>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Duration</Text>
-          <Text style={styles.detailValue}>{calculateDuration()}</Text>
+          <View style={styles.detailIconWrapper}>
+            <Ionicons name="hourglass-outline" size={14} color={colors.accent} />
+            <Text style={[styles.detailLabel, { color: currentColors.text.secondary }]}>
+              Duration
+            </Text>
+          </View>
+          <Text style={[styles.detailValue, { color: currentColors.text.primary }]}>
+            {calculateDuration()}
+          </Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Slot ID</Text>
-          <Text style={styles.detailValue}>{reservation.slotId}</Text>
+          <View style={styles.detailIconWrapper}>
+            <Ionicons name="location-outline" size={14} color={colors.accent} />
+            <Text style={[styles.detailLabel, { color: currentColors.text.secondary }]}>
+              Slot ID
+            </Text>
+          </View>
+          <Text style={[styles.detailValue, { color: currentColors.text.primary }]}>
+            {reservation.slotId}
+          </Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Cost</Text>
-          <Text style={styles.costValue}>LE {reservation.totalCost}</Text>
+          <View style={styles.detailIconWrapper}>
+            <Ionicons name="cash-outline" size={14} color={colors.accent} />
+            <Text style={[styles.detailLabel, { color: currentColors.text.secondary }]}>
+              Cost
+            </Text>
+          </View>
+          <Text style={[styles.costValue, { color: colors.accent }]}>
+            LE {reservation.totalCost}
+          </Text>
         </View>
       </View>
 
       {/* Payment status */}
-      <View style={[styles.paymentStatus, { backgroundColor: getPaymentStatusColor() + '20' }]}>
+      <View style={[styles.paymentStatus, { backgroundColor: getPaymentStatusColor() + '15' }]}>
+        <Ionicons name={getPaymentStatusIcon()} size={16} color={getPaymentStatusColor()} style={styles.paymentIcon} />
         <Text style={[styles.paymentStatusText, { color: getPaymentStatusColor() }]}>
           Payment: {reservation.paymentStatus}
         </Text>
       </View>
-    </TouchableOpacity>
+    </AnimatedTouchable>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borders.radius.md,
+    borderRadius: theme.borders.radius.xl,
     padding: theme.spacing.lg,
     marginVertical: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
-    ...theme.shadows.medium,
-    borderLeftWidth: 6,
+    borderLeftWidth: 4,
   },
   header: {
     flexDirection: 'row',
@@ -139,22 +282,25 @@ const styles = StyleSheet.create({
   },
   reservationIdLabel: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.secondary,
+    marginBottom: theme.spacing['0.5'],
   },
   reservationIdValue: {
     fontSize: theme.typography.fontSize.md,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
+    fontWeight: '700',
   },
   statusBadge: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borders.radius.sm,
+    borderRadius: theme.borders.radius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusIcon: {
+    marginRight: 4,
   },
   statusText: {
-    color: 'white',
     fontSize: theme.typography.fontSize.xs,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   timeSection: {
     flexDirection: 'row',
@@ -163,18 +309,21 @@ const styles = StyleSheet.create({
   timeColumn: {
     flex: 1,
   },
+  timeIconWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing['1'],
+  },
   timeLabel: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xs,
+    marginLeft: 4,
   },
   timeValue: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.primary,
+    marginLeft: 18, // Align with icon
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.divider,
     marginVertical: theme.spacing.md,
   },
   detailsRow: {
@@ -185,30 +334,40 @@ const styles = StyleSheet.create({
   detailItem: {
     flex: 1,
   },
+  detailIconWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing['1'],
+  },
   detailLabel: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xs,
+    marginLeft: 4,
   },
   detailValue: {
     fontSize: theme.typography.fontSize.md,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
+    fontWeight: '600',
+    marginLeft: 18, // Align with icon
   },
   paymentStatus: {
-    padding: theme.spacing.sm,
-    borderRadius: theme.borders.radius.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borders.radius.md,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paymentIcon: {
+    marginRight: 4,
   },
   paymentStatusText: {
     fontSize: theme.typography.fontSize.sm,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   // Special styling for cost value
   costValue: {
     fontSize: theme.typography.fontSize.md,
-    fontWeight: 'bold',
-    color: theme.colors.accent,
+    fontWeight: '700',
+    marginLeft: 18, // Align with icon
   },
 });
 

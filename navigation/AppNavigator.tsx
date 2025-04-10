@@ -21,14 +21,19 @@ import TabNavigator from './TabNavigator';
 const Stack = createStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
-  const { colors } = useTheme();
+  const { themeMode, colors } = useTheme();
+  
+  // Get appropriate background color based on theme mode
+  const backgroundColor = themeMode === 'light' 
+    ? (colors?.light?.background || '#F9FAFB')
+    : (colors?.dark?.background || '#0F172A');
   
   return (
     <Stack.Navigator
       initialRouteName="Onboarding"
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: colors.background },
+        cardStyle: { backgroundColor },
       }}
     >
       {/* Onboarding Screens */}

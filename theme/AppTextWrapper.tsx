@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextProps, StyleSheet } from 'react-native';
+import { Text, TextProps, StyleSheet, Animated } from 'react-native';
 import { useTheme } from './ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import { TranslationKey } from '../constants/translations';
@@ -22,7 +22,7 @@ const AppTextWrapper: React.FC<AppTextWrapperProps> = ({
   style,
   ...props
 }) => {
-  const { colors, themeMode } = useTheme();
+  const { colors, themeMode, animatedColors } = useTheme();
   const { t, language } = useLanguage();
   
   // Get style based on variant
@@ -63,48 +63,45 @@ const AppTextWrapper: React.FC<AppTextWrapperProps> = ({
   }
   
   return (
-    <Text 
+    <Animated.Text 
       style={[
         getVariantStyle(),
-        { color: colors.text.primary },
+        { color: animatedColors.text.primary },
         style,
       ]}
       {...props}
     >
       {content}
-    </Text>
+    </Animated.Text>
   );
 };
 
 const styles = StyleSheet.create({
   header: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 6,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   body: {
-    fontSize: 16,
-    fontWeight: '400',
+    fontSize: 14,
   },
   caption: {
-    fontSize: 14,
-    fontWeight: '400',
+    fontSize: 12,
     opacity: 0.8,
   },
   button: {
     fontSize: 16,
     fontWeight: '600',
-    textTransform: 'uppercase',
   },
   label: {
     fontSize: 14,

@@ -25,8 +25,12 @@ type AccountScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<AccountScreenNavigationProp>();
-  const { themeMode, toggleTheme, colors, switchStyles } = useTheme();
+  const { themeMode, colors, toggleTheme, switchStyles } = useTheme();
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
   const { language, setLanguage, t } = useLanguage();
+  const isRTL = language === 'ar';
   
   // Mock logged in user
   const [user] = useState(MOCK_USERS[0]);
@@ -124,30 +128,30 @@ const AccountScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>
+          <Text style={[styles.title, { color: currentColors.text.primary }]}>
             {t('account')}
           </Text>
         </View>
         
         {/* Profile Section */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.profileBlur}>
-          <View style={[styles.profileContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.profileContainer, { backgroundColor: currentColors.surface }]}>
             <Image 
               source={require('../assets/images/avatar-placeholder.png')} 
               style={styles.avatar}
             />
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: colors.text.primary }]}>
+              <Text style={[styles.profileName, { color: currentColors.text.primary }]}>
                 {user.name}
               </Text>
-              <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>
+              <Text style={[styles.profileEmail, { color: currentColors.text.secondary }]}>
                 {user.email}
               </Text>
               <TouchableOpacity 
                 style={styles.editButton}
                 onPress={() => navigation.navigate('EditProfile')}
               >
-                <Text style={[styles.editButtonText, { color: colors.accent }]}>
+                <Text style={[styles.editButtonText, { color: currentColors.accent }]}>
                   {t('edit')}
                 </Text>
               </TouchableOpacity>
@@ -157,21 +161,21 @@ const AccountScreen: React.FC = () => {
         
         {/* Menu Items */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
-          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.menuContainer, { backgroundColor: currentColors.surface }]}>
             {menuItems.map((item, index) => (
               <TouchableOpacity 
                 key={index}
                 style={[
                   styles.menuItem, 
-                  index < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.divider }
+                  index < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: currentColors.divider }
                 ]}
                 onPress={item.onPress}
               >
-                <Ionicons name={item.icon as any} size={22} color={colors.accent} />
-                <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+                <Ionicons name={item.icon as any} size={22} color={currentColors.accent} />
+                <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                   {item.title}
                 </Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+                <Ionicons name="chevron-forward" size={18} color={currentColors.text.secondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -179,11 +183,11 @@ const AccountScreen: React.FC = () => {
         
         {/* Theme and Language Settings */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
-          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.menuContainer, { backgroundColor: currentColors.surface }]}>
             {/* Theme Toggle */}
-            <View style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
-              <Ionicons name="moon-outline" size={22} color={colors.accent} />
-              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+            <View style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]}>
+              <Ionicons name="moon-outline" size={22} color={currentColors.accent} />
+              <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                 {t('darkMode')}
               </Text>
               <Switch
@@ -200,11 +204,11 @@ const AccountScreen: React.FC = () => {
               style={styles.menuItem}
               onPress={handleLanguageChange}
             >
-              <Ionicons name="language-outline" size={22} color={colors.accent} />
-              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+              <Ionicons name="language-outline" size={22} color={currentColors.accent} />
+              <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                 {t('language')}
               </Text>
-              <Text style={[styles.languageText, { color: colors.text.secondary }]}>
+              <Text style={[styles.languageText, { color: currentColors.text.secondary }]}>
                 {language === 'en' ? t('english') : t('arabic')}
               </Text>
             </TouchableOpacity>

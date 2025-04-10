@@ -5,8 +5,8 @@ export const en = {
   // Auth screens
   welcome: 'Welcome',
   welcomeBack: 'Welcome Back',
-  signIn: 'Sign In',
-  signUp: 'Sign Up',
+  signIn: 'Sign in to your account',
+  signUp: 'Sign up to start using the app',
   login: 'Login',
   register: 'Register',
   forgotPassword: 'Forgot Password?',
@@ -18,17 +18,31 @@ export const en = {
   phoneNumber: 'Phone Number',
   enterEmail: 'Enter your email',
   enterPassword: 'Enter your password',
-  enterFullName: 'Enter your full name',
-  enterPhoneNumber: 'Enter your phone number',
+  enterName: 'Enter your full name',
+  enterPhone: 'Enter your phone number',
+  confirmYourPassword: 'Confirm your password',
   dontHaveAccount: 'Don\'t have an account?',
   alreadyHaveAccount: 'Already have an account?',
   createAccount: 'Create Account',
+  readyToGetStarted: 'Ready to get started?',
+  createAccountDescription: 'Create an account to save your favorite parking locations and manage your reservations.',
+  skipAsGuest: 'Skip and continue as guest',
+  noAccount: 'Don\'t have an account?',
+  haveAccount: 'Already have an account?',
   
   // Validation messages
-  invalidEmail: 'Please enter a valid email address',
-  passwordTooShort: 'Password must be at least 6 characters',
-  passwordsDontMatch: 'Passwords do not match',
+  validEmail: 'Please enter a valid email address',
+  passwordLength: 'Password must be at least 6 characters',
+  passwordsMatch: 'Passwords do not match',
+  nameLength: 'Name must be at least 3 characters long',
+  validPhone: 'Please enter a valid phone number',
   fieldRequired: 'This field is required',
+  
+  // Login/Register messages
+  loginFailed: 'Login Failed',
+  invalidCredentials: 'Invalid email or password. Please try again.',
+  registrationSuccess: 'Registration Successful',
+  accountCreated: 'Your account has been created successfully.',
   
   // Dashboard
   dashboard: 'Dashboard',
@@ -156,4 +170,20 @@ export const en = {
   perHour: 'per hour',
   perDay: 'per day',
   perMonth: 'per month',
+  
+  // Pricing Screen
+  pricingPlans: 'Pricing Plans',
+  transparentPricing: 'Transparent & Flexible Pricing',
+  pricingDescription: 'Choose from various pricing options to suit your parking needs, from hourly to monthly plans.',
+  costEstimator: 'Cost Estimator',
+  calculateExpenses: 'Calculate your parking expenses',
+  hours: 'Hours',
+  days: 'Days',
+  calculateCost: 'Calculate Cost',
+  estimatedCost: 'Estimated Cost',
+  acceptedPayments: 'Accepted Payment Methods',
+  creditCard: 'Credit Card',
+  debitCard: 'Debit Card',
+  mobilePay: 'Mobile Pay',
+  cash: 'Cash',
 }; 

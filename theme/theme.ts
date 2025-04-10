@@ -2,62 +2,68 @@ import { Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Colors - Updated with 2025 design
+// Global scale factor - reduces overall UI size by 10%
+const GLOBAL_SCALE = 0.81;
+
+// Function to scale dimensions
+const scale = (size: number) => Math.round(size * GLOBAL_SCALE);
+
+// Colors - Updated with 2025 design patterns
 const colors = {
   // Main colors from design reference
-  primary: '#1C1C3C', // Dark navy background
+  primary: '#1A1A38', // Deeper navy background
   secondary: '#FFFFFF', // White
-  accent: '#F9B233', // Modern yellow-orange accent
+  accent: '#FF9D00', // Vibrant orange accent (updated from yellow-orange)
   error: '#FF4D4F', // Modern error red
   warning: '#FAAD14', // Modern warning amber
-  info: '#1890FF', // Modern info blue
-  success: '#52C41A', // Modern success green
-  background: '#1C1C3C', // Dark navy background
-  surface: '#2A2A4F', // Secondary dark for cards
+  info: '#0091FF', // Brighter info blue
+  success: '#00C853', // Brighter success green
+  background: '#1A1A38', // Deeper navy background
+  surface: '#282852', // Richer secondary dark for cards
   text: {
     primary: '#FFFFFF', // White for primary text
-    secondary: '#CCCCCC', // Light gray for secondary text
+    secondary: '#DADAE8', // Slightly blueish light gray for secondary text
     disabled: '#8E8E9F', // Medium gray for disabled text
     hint: '#A0A0B8', // Light gray for placeholder/hint text
   },
-  divider: '#3A3A5C', // Darker blue for dividers
+  divider: '#3D3D6B', // Richer blue for dividers
   // Status colors
   status: {
-    available: '#CCCCCC', // Light gray for available slots (as per design guidelines)
+    available: '#00C853', // Bright green for available slots (updated)
     occupied: '#FF4D4F', // Modern error red for occupied slots
-    reserved: '#F9B233', // Accent color for reserved slots (as per design)
+    reserved: '#FF9D00', // Updated accent color for reserved slots
     outOfService: '#8E8E9F', // Gray for unavailable slots
   },
   // Light mode colors
   light: {
-    primary: '#1C1C3C',
+    primary: '#1A1A38',
     secondary: '#FFFFFF',
-    accent: '#F9B233',
-    background: '#FFFFFF',
-    surface: '#F5F7FA',
+    accent: '#FF9D00',
+    background: '#F8F8FC', // Slightly blue-tinted white
+    surface: '#FFFFFF',
     text: {
-      primary: '#1C1C3C',
-      secondary: '#5E5E7A',
+      primary: '#1A1A38',
+      secondary: '#454570',
       disabled: '#8E8E9F',
       hint: '#8E8E9F',
     },
-    divider: '#EAEAEA',
+    divider: '#E8E8F0', // Slightly blue-tinted divider
     error: '#FF4D4F',
   },
   // Dark mode colors
   dark: {
-    primary: '#1C1C3C',
+    primary: '#1A1A38',
     secondary: '#FFFFFF',
-    accent: '#F9B233',
-    background: '#1C1C3C',
-    surface: '#2A2A4F',
+    accent: '#FF9D00',
+    background: '#13132E', // Deeper navy
+    surface: '#282852', // Richer secondary dark
     text: {
       primary: '#FFFFFF',
-      secondary: '#CCCCCC',
+      secondary: '#DADAE8',
       disabled: '#8E8E9F',
       hint: '#A0A0B8',
     },
-    divider: '#3A3A5C',
+    divider: '#3D3D6B',
     error: '#FF4D4F',
   }
 };
@@ -70,26 +76,26 @@ const typography = {
     bold: 'System',
   },
   fontSize: {
-    xs: 12,
-    sm: 14,
-    base: 16,
-    md: 18,
-    lg: 20,
-    xl: 24,
-    '2xl': 28,
-    '3xl': 36,
-    '4xl': 42,
+    xs: scale(12),
+    sm: scale(14),
+    base: scale(16),
+    md: scale(18),
+    lg: scale(20),
+    xl: scale(24),
+    '2xl': scale(28),
+    '3xl': scale(36),
+    '4xl': scale(48),
   },
   lineHeight: {
-    xs: 16,
-    sm: 20,
-    base: 24,
-    md: 28,
-    lg: 30,
-    xl: 34,
-    '2xl': 38,
-    '3xl': 46,
-    '4xl': 54,
+    xs: scale(16),
+    sm: scale(20),
+    base: scale(24),
+    md: scale(28),
+    lg: scale(30),
+    xl: scale(34),
+    '2xl': scale(38),
+    '3xl': scale(46),
+    '4xl': scale(58),
   },
   fontWeight: {
     thin: '100',
@@ -105,52 +111,52 @@ const typography = {
 // Spacing - Updated with more granular sizes
 const spacing = {
   '0': 0,
-  '0.5': 2,
-  '1': 4,
-  '2': 8,
-  '3': 12,
-  '4': 16,
-  '5': 20,
-  '6': 24,
-  '8': 32,
-  '10': 40,
-  '12': 48,
-  '16': 64,
-  '20': 80,
-  '24': 96,
+  '0.5': scale(2),
+  '1': scale(4),
+  '2': scale(8),
+  '3': scale(12),
+  '4': scale(16),
+  '5': scale(20),
+  '6': scale(24),
+  '8': scale(32),
+  '10': scale(40),
+  '12': scale(48),
+  '16': scale(64),
+  '20': scale(80),
+  '24': scale(96),
   // Legacy support
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-  xxxl: 64,
+  xs: scale(4),
+  sm: scale(8),
+  md: scale(16),
+  lg: scale(24),
+  xl: scale(32),
+  xxl: scale(48),
+  xxxl: scale(64),
 };
 
 // Borders - Updated with modern rounded corners
 const borders = {
   radius: {
     none: 0,
-    sm: 4,
-    md: 8,
-    lg: 12,
-    xl: 16,
-    '2xl': 24,
-    '3xl': 32,
+    sm: scale(6),
+    md: scale(10),
+    lg: scale(14),
+    xl: scale(20),
+    '2xl': scale(28),
+    '3xl': scale(36),
     full: 9999,
     // Legacy support
-    xs: 2,
+    xs: scale(3),
     circle: 9999,
   },
   width: {
-    thin: 1,
-    normal: 2,
-    thick: 3,
+    thin: scale(1),
+    normal: scale(2),
+    thick: scale(3),
   },
 };
 
-// Shadows - Updated with modern elevation effects
+// Shadows - Updated with modern elevation effects for 2025 design
 const shadows = {
   none: {
     shadowColor: 'transparent',
@@ -161,61 +167,91 @@ const shadows = {
   },
   sm: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.10,
+    shadowRadius: scale(3),
     elevation: 2,
   },
   md: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3.0,
+    shadowOffset: { width: 0, height: scale(3) },
+    shadowOpacity: 0.12,
+    shadowRadius: scale(5),
     elevation: 4,
   },
   lg: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 5.0,
+    shadowOffset: { width: 0, height: scale(6) },
+    shadowOpacity: 0.16,
+    shadowRadius: scale(8),
     elevation: 8,
   },
   xl: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12.0,
+    shadowOffset: { width: 0, height: scale(10) },
+    shadowOpacity: 0.20,
+    shadowRadius: scale(16),
     elevation: 16,
   },
   // Legacy support
   light: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.10,
+    shadowRadius: scale(3),
     elevation: 2,
   },
   medium: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
+    shadowOffset: { width: 0, height: scale(3) },
+    shadowOpacity: 0.12,
+    shadowRadius: scale(5),
     elevation: 4,
   },
   heavy: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
-    elevation: 8,
+    shadowOffset: { width: 0, height: scale(8) },
+    shadowOpacity: 0.20,
+    shadowRadius: scale(12),
+    elevation: 10,
+  },
+};
+
+// Animations - New for 2025 design
+const animations = {
+  duration: {
+    fast: 200,
+    normal: 300,
+    slow: 500,
+  },
+  easing: {
+    // Common easing functions
+    easeIn: [0.4, 0, 1, 1],
+    easeOut: [0, 0, 0.2, 1],
+    easeInOut: [0.4, 0, 0.2, 1],
+  },
+  transition: {
+    default: {
+      duration: 300,
+      easing: [0.4, 0, 0.2, 1],
+    },
+    fast: {
+      duration: 200,
+      easing: [0.4, 0, 0.2, 1],
+    },
+    slow: {
+      duration: 500,
+      easing: [0.4, 0, 0.2, 1],
+    },
   },
 };
 
 // Responsive sizing helper
 const size = {
-  width,
-  height,
+  width: width * GLOBAL_SCALE,
+  height: height * GLOBAL_SCALE,
   isSmallDevice: width < 375,
+  isTablet: width >= 768,
 };
 
 // Export the theme
@@ -225,7 +261,10 @@ const theme = {
   spacing,
   borders,
   shadows,
+  animations,
   size,
+  scale, // Export the scale function for use in components
+  GLOBAL_SCALE, // Export the global scale factor
 };
 
 export default theme; 

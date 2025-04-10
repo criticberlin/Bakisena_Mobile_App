@@ -7,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   Image,
-  Platform,
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +23,12 @@ type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage(); 
+  const isRTL = language === 'ar';
   
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
   // Mock user data - in a real app, this would come from a context/state
   const [userData, setUserData] = useState({
     name: 'John Doe',
@@ -37,92 +40,87 @@ const EditProfileScreen: React.FC = () => {
   const handleSave = () => {
     // In a real app, you would save the user data to your backend here
     Alert.alert(
-      'Success',
-      'Profile updated successfully!',
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
+      t('save'),
+      t('registrationSuccess'),
+      [{ text: t('ok'), onPress: () => navigation.goBack() }]
     );
   };
 
   const pickImage = () => {
     // This would use image picker in a real app
-    Alert.alert('Image Picker', 'This would open the image picker');
+    Alert.alert(t('add'), t('appDescription'));
   };
 
   return (
     <AppLayout>
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: colors.surface }]} 
+          style={[styles.backButton, { backgroundColor: currentColors.surface }]} 
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color={currentColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          Edit Profile
+        <Text style={[styles.title, { color: currentColors.text.primary }]}>
+          {t('profile')}
         </Text>
         <TouchableOpacity 
-          style={[styles.saveButton, { backgroundColor: colors.accent }]} 
+          style={[styles.saveButton, { backgroundColor: currentColors.accent }]} 
           onPress={handleSave}
         >
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>{t('save')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView 
-        showsVerticalScrollIndicator={false}
+        style={styles.content}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Profile Image Section */}
-        <View style={styles.imageContainer}>
-          <View style={styles.imageWrapper}>
+        {/* Profile Image */}
+        <View style={styles.imageSection}>
+          <TouchableOpacity 
+            style={styles.profileImageContainer}
+            onPress={pickImage}
+          >
             {userData.profileImage ? (
-              <Image 
-                source={{ uri: userData.profileImage }} 
-                style={styles.profileImage} 
-              />
+              <Image source={{ uri: userData.profileImage }} style={styles.profileImage} />
             ) : (
-              <Image 
-                source={require('../assets/images/avatar-placeholder.png')} 
-                style={styles.profileImage}
-              />
+              <Image source={require('../assets/images/avatar-placeholder.png')} style={styles.profileImage} />
             )}
-            <TouchableOpacity 
-              style={[styles.editImageButton, { backgroundColor: colors.accent }]} 
-              onPress={pickImage}
-            >
-              <Ionicons name="camera" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+            <View style={[styles.editImageButton, { backgroundColor: currentColors.accent }]}>
+              <Ionicons name="camera" size={18} color="#FFF" />
+            </View>
+          </TouchableOpacity>
         </View>
-
+        
         {/* Form Fields */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.formBlur}>
-          <View style={[styles.formContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.formContainer, { backgroundColor: currentColors.surface }]}>
             {/* Name Field */}
-            <View style={[styles.inputGroup, { borderBottomColor: colors.divider }]}>
-              <Text style={[styles.inputLabel, { color: colors.text.secondary }]}>
-                Full Name
+            <View style={[styles.inputGroup, { borderBottomColor: currentColors.divider }]}>
+              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
+                {t('fullName')}
               </Text>
               <TextInput
-                style={[styles.input, { color: colors.text.primary }]}
+                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
                 value={userData.name}
                 onChangeText={(text) => setUserData(prev => ({ ...prev, name: text }))}
-                placeholder="Enter your full name"
-                placeholderTextColor={colors.text.secondary}
+                placeholder={t('enterName')}
+                placeholderTextColor={currentColors.text.secondary}
               />
             </View>
             
             {/* Email Field */}
-            <View style={[styles.inputGroup, { borderBottomColor: colors.divider }]}>
-              <Text style={[styles.inputLabel, { color: colors.text.secondary }]}>
-                Email
+            <View style={[styles.inputGroup, { borderBottomColor: currentColors.divider }]}>
+              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
+                {t('email')}
               </Text>
               <TextInput
-                style={[styles.input, { color: colors.text.primary }]}
+                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
                 value={userData.email}
                 onChangeText={(text) => setUserData(prev => ({ ...prev, email: text }))}
-                placeholder="Enter your email"
-                placeholderTextColor={colors.text.secondary}
+                placeholder={t('enterEmail')}
+                placeholderTextColor={currentColors.text.secondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -130,38 +128,25 @@ const EditProfileScreen: React.FC = () => {
             
             {/* Phone Field */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.text.secondary }]}>
-                Phone Number
+              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
+                {t('phoneNumber')}
               </Text>
               <TextInput
-                style={[styles.input, { color: colors.text.primary }]}
+                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
                 value={userData.phone}
                 onChangeText={(text) => setUserData(prev => ({ ...prev, phone: text }))}
-                placeholder="Enter your phone number"
-                placeholderTextColor={colors.text.secondary}
+                placeholder={t('enterPhone')}
+                placeholderTextColor={currentColors.text.secondary}
                 keyboardType="phone-pad"
               />
             </View>
           </View>
         </BlurView>
-
-        {/* Password Change Section */}
-        <Text style={[styles.sectionTitle, { color: colors.text.secondary, marginTop: 24 }]}>
-          Security
-        </Text>
         
-        <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.formBlur}>
-          <TouchableOpacity 
-            style={[styles.passwordChangeButton, { backgroundColor: colors.surface }]}
-            onPress={() => Alert.alert('Change Password', 'This would open a password change form')}
-          >
-            <Ionicons name="lock-closed-outline" size={22} color={colors.accent} style={styles.lockIcon} />
-            <Text style={[styles.passwordChangeText, { color: colors.text.primary }]}>
-              Change Password
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
-        </BlurView>
+        {/* Delete Account Button */}
+        <TouchableOpacity style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>{t('delete')}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </AppLayout>
   );
@@ -196,15 +181,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+  content: {
+    flex: 1,
+  },
   scrollContent: {
     paddingBottom: 40,
     paddingHorizontal: 16,
   },
-  imageContainer: {
+  imageSection: {
     alignItems: 'center',
     marginVertical: 24,
   },
-  imageWrapper: {
+  profileImageContainer: {
     position: 'relative',
   },
   profileImage: {
@@ -214,54 +202,49 @@ const styles = StyleSheet.create({
   },
   editImageButton: {
     position: 'absolute',
-    bottom: 0,
     right: 0,
+    bottom: 0,
     width: 36,
     height: 36,
     borderRadius: 18,
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   formBlur: {
     overflow: 'hidden',
     borderRadius: 16,
+    marginBottom: 24,
   },
   formContainer: {
     borderRadius: 16,
-    paddingVertical: 8,
+    padding: 16,
   },
   inputGroup: {
-    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
   inputLabel: {
     fontSize: 14,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   input: {
     fontSize: 16,
     paddingVertical: 8,
   },
-  sectionTitle: {
+  deleteButton: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  passwordChangeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-  },
-  lockIcon: {
-    marginRight: 12,
-  },
-  passwordChangeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    flex: 1,
   },
 });
 
