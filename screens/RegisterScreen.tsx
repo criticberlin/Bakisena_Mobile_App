@@ -197,7 +197,19 @@ const RegisterScreen: React.FC = () => {
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <TouchableOpacity 
+                style={styles.loginTouchable}
+                onPress={() => {
+                  console.log('Login button pressed');
+                  // Use a timeout to ensure the press is registered
+                  setTimeout(() => {
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  }, 100);
+                }}
+              >
                 <Text style={styles.loginLink}>Login</Text>
               </TouchableOpacity>
             </View>
@@ -235,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: theme.typography.fontSize.xxl,
+    fontSize: theme.typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: theme.colors.primary,
     marginBottom: theme.spacing.xs,
@@ -281,15 +293,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: theme.spacing.xl,
+    alignItems: 'center',
   },
   loginText: {
     color: theme.colors.text.secondary,
     fontSize: theme.typography.fontSize.md,
   },
   loginLink: {
-    color: theme.colors.primary,
+    color: theme.colors.accent,
     fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+  loginTouchable: {
+    padding: theme.spacing.sm,
   },
   backButton: {
     alignItems: 'center',
