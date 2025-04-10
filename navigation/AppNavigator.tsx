@@ -14,6 +14,7 @@ import AboutScreen from '../screens/AboutScreen';
 import MyVehiclesScreen from '../screens/MyVehiclesScreen';
 import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
 import PastBookingsScreen from '../screens/PastBookingsScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import { RootStackParamList } from '../types';
 import TabNavigator from './TabNavigator';
 
@@ -47,7 +48,7 @@ const AppNavigator = () => {
       
       {/* User Account Screens */}
       <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="EditProfile" component={SettingsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="MyVehicles" component={MyVehiclesScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
       <Stack.Screen name="PastBookings" component={PastBookingsScreen} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
@@ -25,6 +25,7 @@ export type TabParamList = {
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 type TabBarIconProps = {
   focused: boolean;
@@ -41,6 +42,9 @@ const TabNavigator = () => {
   const insets = useSafeAreaInsets();
   const { themeMode, colors } = useTheme();
   const { t } = useLanguage();
+  
+  // Determine if we're in dark mode for theming
+  const isDarkMode = themeMode === 'dark';
   
   return (
     <Tab.Navigator
@@ -64,6 +68,18 @@ const TabNavigator = () => {
             iconName = focused ? 'person' : 'person-outline';
           }
 
+          // Special style for the Parking button
+          if (route.name === 'Parking') {
+            return (
+              <View style={styles.parkingIconContainer}>
+                <Animated.View style={styles.parkingIconCircle}>
+                  <Ionicons name={iconName} size={28} color="#000" />
+                </Animated.View>
+              </View>
+            );
+          }
+
+          // Regular style for other tabs
           return (
             <View style={styles.iconContainer}>
               <Animated.View 
@@ -72,7 +88,7 @@ const TabNavigator = () => {
                   {
                     backgroundColor: focused ? 
                       `${colors.accent}30` : 
-                      themeMode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+                      isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
                   }
                 ]}
               >
@@ -87,45 +103,41 @@ const TabNavigator = () => {
           );
         },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: themeMode === 'dark' ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.6)",
+        tabBarInactiveTintColor: isDarkMode ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.6)",
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: themeMode === 'dark' ? 'rgba(28, 28, 60, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
-          height: 70 + (Platform.OS === 'ios' ? insets.bottom : 10),
+          height: 60 + (Platform.OS === 'ios' ? insets.bottom : 10),
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
-          paddingTop: 10,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -5 },
-          shadowOpacity: 0.2,
-          shadowRadius: 15,
-          elevation: 25,
+          paddingTop: 5,
+          elevation: 0, // Remove default elevation
+          left: 16,
+          right: 16,
+          bottom: 16,
+          paddingHorizontal: 5,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
           marginTop: 5,
-          marginBottom: 4,
+          marginBottom: 5,
           fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
         },
         tabBarItemStyle: {
-          paddingVertical: 6,
+          paddingVertical: 5,
         },
         tabBarBackground: () => (
-          <BlurView 
-            intensity={40} 
-            tint={themeMode === 'dark' ? "dark" : "light"} 
-            style={[
-              StyleSheet.absoluteFill, 
-              { 
-                borderTopLeftRadius: 28, 
-                borderTopRightRadius: 28,
-                overflow: 'hidden'
-              }
-            ]}
-          />
+          <View style={styles.tabBarBackgroundContainer}>
+            <BlurView 
+              intensity={isDarkMode ? 25 : 40} 
+              tint={isDarkMode ? "dark" : "light"} 
+              style={[
+                StyleSheet.absoluteFill, 
+                styles.blurViewStyle
+              ]}
+            />
+          </View>
         ),
       })}
     >
@@ -142,7 +154,12 @@ const TabNavigator = () => {
       <Tab.Screen 
         name="Parking" 
         component={ParkingScreen} 
-        options={{ tabBarLabel: t('parking') }}
+        options={{ 
+          tabBarLabel: t('parking'),
+          tabBarItemStyle: {
+            height: 0, // Adjust for the raised circular button
+          }
+        }}
       />
       <Tab.Screen 
         name="Connected" 
@@ -179,6 +196,44 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
   },
+  parkingIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 56,
+    height: 56,
+    marginTop: -30, // Raise the button above the tab bar
+  },
+  parkingIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFCC00', // Yellow color as in the screenshot
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  tabBarBackgroundContainer: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginHorizontal: 0,
+    backgroundColor: 'transparent',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  blurViewStyle: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  }
 });
 
-export default TabNavigator; 
+export default TabNavigator;

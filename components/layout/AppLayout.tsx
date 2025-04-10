@@ -4,7 +4,7 @@ import { AppThemeWrapper } from '../../theme';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
   scrollable?: boolean;
   containerType?: 'view' | 'screen' | 'surface' | 'card';
   paddingHorizontal?: number;
