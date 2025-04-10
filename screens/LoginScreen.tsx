@@ -89,6 +89,17 @@ const LoginScreen: React.FC = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.container}>
+            {/* Top Right Back Button */}
+            <TouchableOpacity 
+              style={styles.topBackButton}
+              onPress={() => {
+                console.log('Top back button pressed - going to Onboarding');
+                navigation.navigate('Onboarding');
+              }}
+            >
+              <Ionicons name="close-outline" size={28} color={theme.colors.text.secondary} />
+            </TouchableOpacity>
+            
             {/* App Logo */}
             <View style={styles.logoContainer}>
               <Image 
@@ -205,6 +216,14 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: theme.spacing['5'],
+    position: 'relative',
+  },
+  topBackButton: {
+    position: 'absolute',
+    top: theme.spacing.sm || 8,
+    right: theme.spacing.md || 16,
+    zIndex: 10,
+    padding: theme.spacing.sm || 8,
   },
   logoContainer: {
     alignItems: 'center',

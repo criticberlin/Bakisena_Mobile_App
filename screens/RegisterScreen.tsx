@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 
 import ActionButton from '../components/ActionButton';
 import { RootStackParamList } from '../types';
@@ -111,6 +112,17 @@ const RegisterScreen: React.FC = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.container}>
+            {/* Top Right Back Button */}
+            <TouchableOpacity 
+              style={styles.topBackButton}
+              onPress={() => {
+                console.log('Top back button pressed - going to Onboarding');
+                navigation.navigate('Onboarding');
+              }}
+            >
+              <Ionicons name="close-outline" size={28} color={theme.colors.text.secondary} />
+            </TouchableOpacity>
+            
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Create Account</Text>
@@ -241,6 +253,14 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: theme.spacing.lg,
+    position: 'relative',
+  },
+  topBackButton: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    right: theme.spacing.md,
+    zIndex: 10,
+    padding: theme.spacing.sm,
   },
   header: {
     marginBottom: theme.spacing.xl,
