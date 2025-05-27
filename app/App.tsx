@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import AppThemeWrapper from '../theme/AppThemeWrapper';
 import { LanguageProvider, useLanguage } from '../constants/translations/LanguageContext';
 import { AuthProvider } from '../components/AuthContext';
+import { initializeAdminAccount } from '../services/auth';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -33,6 +34,11 @@ const AppContent = () => {
     };
     
     hideSplash();
+  }, []);
+
+  useEffect(() => {
+    // Initialize admin account
+    initializeAdminAccount().catch(console.error);
   }, []);
 
   // Create navigation theme

@@ -12,15 +12,23 @@ export interface ParkingLocation {
   id: string;
   name: string;
   address: string;
-  totalSlots: number;
-  availableSlots: number;
-  pricePerHour: number;
-  pricePerDay: number;
-  pricePerMonth: number;
-  coordinates?: {
+  coordinates: {
     latitude: number;
     longitude: number;
   };
+  levels: ParkingLevel[];
+  totalSlots: number;
+  availableSlots: number;
+  priceRange: {
+    min: number;
+    max: number;
+  };
+  operatingHours: {
+    open: string;
+    close: string;
+  };
+  amenities: string[];
+  images: string[];
 }
 
 // Parking slot types
@@ -33,11 +41,36 @@ export enum SlotStatus {
 
 export interface ParkingSlot {
   id: string;
-  locationId: string;
-  slotNumber: string;
-  status: SlotStatus;
-  vehicleId?: string;
-  reservationId?: string;
+  number: string;
+  status: 'available' | 'occupied' | 'reserved' | 'maintenance';
+  type: 'standard' | 'handicap' | 'electric' | 'vip';
+  level: number;
+  section: string;
+  coordinates: {
+    x: number;
+    y: number;
+  };
+  pricePerHour: number;
+  lastUpdated: Date;
+  currentBooking?: string; // Booking ID if slot is reserved/occupied
+}
+
+export interface ParkingSection {
+  id: string;
+  name: string;
+  level: number;
+  totalSlots: number;
+  availableSlots: number;
+  slots: ParkingSlot[];
+}
+
+export interface ParkingLevel {
+  id: string;
+  number: number;
+  name: string;
+  sections: ParkingSection[];
+  totalSlots: number;
+  availableSlots: number;
 }
 
 // Reservation types

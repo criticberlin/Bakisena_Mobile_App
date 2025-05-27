@@ -16,6 +16,7 @@ import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
 import PastBookingsScreen from '../screens/PastBookingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import { FirebaseTest } from '../screens/FirebaseTest';
+import ParkingManagementScreen from '../screens/ParkingManagementScreen';
 import { RootStackParamList } from '../types';
 import TabNavigator from './TabNavigator';
 
@@ -69,7 +70,7 @@ const AppNavigator = () => {
       {/* Admin Screens */}
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       <Stack.Screen name="UserManagement" component={AdminDashboardScreen} />
-      <Stack.Screen name="SlotManagement" component={AdminDashboardScreen} />
+      <Stack.Screen name="SlotManagement" component={ParkingManagementScreen} />
       <Stack.Screen name="Reports" component={AdminDashboardScreen} />
     </Stack.Navigator>
   );

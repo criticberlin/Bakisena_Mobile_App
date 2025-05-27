@@ -57,6 +57,10 @@ export const en = {
   // Parking
   parkingStatus: 'Parking Status',
   swipeToEnter: 'Swipe to Enter',
+  available: 'Available',
+  occupied: 'Occupied',
+  reserved: 'Reserved',
+  maintenance: 'Maintenance',
   availableSlots: 'Available Slots',
   occupiedSlots: 'Occupied Slots',
   reservedSlots: 'Reserved Slots',

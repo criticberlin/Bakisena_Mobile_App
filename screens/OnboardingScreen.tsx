@@ -12,7 +12,7 @@ import {
   Animated,
   PanResponder
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
@@ -27,6 +27,7 @@ type OnboardingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'O
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
   const { themeMode, colors } = useTheme();
   const { t, isRTL } = useLanguage();
   const swipeAnim = useRef(new Animated.Value(0)).current;
@@ -34,6 +35,29 @@ const OnboardingScreen: React.FC = () => {
 
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+
+  // Reset animation when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsMounted(true);
+      swipeAnim.setValue(0);
+      return () => {
+        setIsMounted(false);
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    // Simulate any data loading if needed
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    
+    return () => {
+      clearTimeout(timer);
+      setIsMounted(false);
+    };
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -61,22 +85,16 @@ const OnboardingScreen: React.FC = () => {
           Animated.spring(swipeAnim, {
             toValue: 0,
             useNativeDriver: true,
+            friction: 8,
+            tension: 40
           }).start();
         }
       },
     })
   ).current;
 
-  useEffect(() => {
-    // Simulate any data loading if needed
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleNavigateToLoginOptions = () => {
+    setIsMounted(false);
     navigation.navigate('LoginOptions');
   };
 
@@ -165,30 +183,37 @@ const OnboardingScreen: React.FC = () => {
       </View>
 
       {/* Swipeable bottom button */}
-      <View style={[styles.swipeContainer, { backgroundColor: currentColors.surface }]}>
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[
-            styles.swipeButton,
-            {
-              backgroundColor: currentColors.accent,
-              transform: [{ translateX: swipeAnim }],
-              flexDirection: isRTL ? 'row-reverse' : 'row',
-            },
-          ]}
-        >
-          <AppTextWrapper style={[styles.swipeText, { color: currentColors.primary }]}>
-            {t('swipeToEnter')}
-          </AppTextWrapper>
-          <View style={[styles.swipeIconContainer, { 
-            backgroundColor: currentColors.primary,
-            left: isRTL ? undefined : 20,
-            right: isRTL ? 20 : undefined
-          }]}>
-            <Text style={[styles.swipeIcon, { color: currentColors.accent }]}>➜</Text>
-          </View>
-        </Animated.View>
-      </View>
+      {isMounted && (
+        <View style={[styles.swipeContainer, { backgroundColor: currentColors.surface }]}>
+          <Animated.View
+            {...panResponder.panHandlers}
+            style={[
+              styles.swipeButton,
+              {
+                backgroundColor: currentColors.accent,
+                transform: [{ translateX: swipeAnim }],
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                opacity: swipeAnim.interpolate({
+                  inputRange: [-width, 0, width],
+                  outputRange: [0, 1, 0],
+                  extrapolate: 'clamp'
+                })
+              },
+            ]}
+          >
+            <AppTextWrapper style={[styles.swipeText, { color: currentColors.primary }]}>
+              {t('swipeToEnter')}
+            </AppTextWrapper>
+            <View style={[styles.swipeIconContainer, { 
+              backgroundColor: currentColors.primary,
+              left: isRTL ? undefined : 20,
+              right: isRTL ? 20 : undefined
+            }]}>
+              <Text style={[styles.swipeIcon, { color: currentColors.accent }]}>➜</Text>
+            </View>
+          </Animated.View>
+        </View>
+      )}
     </AppLayout>
   );
 };

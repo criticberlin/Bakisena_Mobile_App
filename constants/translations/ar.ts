@@ -55,6 +55,10 @@ export const ar = {
   // Parking
   parkingStatus: 'حالة الوقوف',
   swipeToEnter: 'اسحب للدخول',
+  available: 'متاح',
+  occupied: 'مشغول',
+  reserved: 'محجوز',
+  maintenance: 'صيانة',
   availableSlots: 'المواقف المتاحة',
   occupiedSlots: 'المواقف المشغولة',
   reservedSlots: 'المواقف المحجوزة',
