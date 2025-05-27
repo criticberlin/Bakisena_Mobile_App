@@ -53,6 +53,7 @@ export const en = {
   monitor: 'Monitor',
   account: 'Account',
   connected: 'Connection',
+  admin: 'Admin',
   
   // Parking
   parkingStatus: 'Parking Status',

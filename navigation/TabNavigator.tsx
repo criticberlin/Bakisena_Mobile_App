@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import { useAuth } from '../components/AuthContext';
 import Svg, { Path } from 'react-native-svg';
 import CustomTabBar from '../components/layout/CustomTabBar';
 
@@ -16,6 +17,7 @@ import ParkingScreen from '../screens/ParkingScreen';
 import ConnectedScreen from '../screens/ConnectedScreen';
 import AccountScreen from '../screens/AccountScreen';
 import HomeScreen from '../screens/HomeScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
 // Define the tab navigator param list
 export type TabParamList = {
@@ -24,6 +26,7 @@ export type TabParamList = {
   Parking: undefined;
   Connected: undefined;
   Account: undefined;
+  AdminDashboard: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -44,6 +47,7 @@ const TabNavigator = () => {
   const insets = useSafeAreaInsets();
   const { themeMode, colors } = useTheme();
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   
   // Determine if we're in dark mode for theming
   const isDarkMode = themeMode === 'dark';
@@ -94,6 +98,13 @@ const TabNavigator = () => {
         component={AccountScreen} 
         options={{ tabBarLabel: t('account') }}
       />
+      {isAdmin && (
+        <Tab.Screen 
+          name="AdminDashboard" 
+          component={AdminDashboardScreen} 
+          options={{ tabBarLabel: t('admin') }}
+        />
+      )}
     </Tab.Navigator>
   );
 };
