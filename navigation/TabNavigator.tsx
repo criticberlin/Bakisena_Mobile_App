@@ -49,6 +49,8 @@ const TabNavigator = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
   
+  console.log('TabNavigator: isAdmin status from useAuth:', isAdmin);
+  
   // Determine if we're in dark mode for theming
   const isDarkMode = themeMode === 'dark';
 

@@ -7,12 +7,14 @@ import {
   SafeAreaView, 
   StatusBar,
   TouchableOpacity,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import { useAuth } from '../components/AuthContext';
 
 import ActionButton from '../components/ActionButton';
 import { RootStackParamList } from '../types';
@@ -45,6 +47,7 @@ const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<AdminDashboardScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
   const { t, language } = useLanguage();
+  const { logout } = useAuth();
   
   // Get current theme colors with fallbacks
   const currentColors = themeMode === 'light' ? 
@@ -79,8 +82,25 @@ const AdminDashboardScreen: React.FC = () => {
   const stats = getStatistics();
 
   const handleLogout = () => {
-    // In a real app, you would clear the authentication token here
-    navigation.navigate('MainTabs');
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Define styles inside the component to access theme variables

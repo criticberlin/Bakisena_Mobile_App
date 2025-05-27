@@ -116,22 +116,20 @@ export type RootStackParamList = {
   LoginOptions: undefined;
   Login: undefined;
   Register: undefined;
-  ForgotPassword: undefined;
   UserDashboard: undefined;
   AdminDashboard: undefined;
-  PricesPage: undefined;
-  MakeReservation: undefined;
-  PastBookings: undefined;
-  EditProfile: undefined;
-  SlotManagement: undefined;
   UserManagement: undefined;
+  SlotManagement: undefined;
   Reports: undefined;
+  PricesPage: undefined;
   MainTabs: undefined;
+  Settings: undefined;
+  EditProfile: undefined;
   MyVehicles: undefined;
   PaymentMethods: undefined;
-  Settings: undefined;
+  PastBookings: undefined;
   About: undefined;
-  FirebaseTest: undefined;
+  MakeReservation: undefined;
 };
 
 // Component prop types
