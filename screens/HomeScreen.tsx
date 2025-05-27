@@ -1,563 +1,915 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView,
-  SafeAreaView, 
-  Image, 
-  StatusBar,
-  Platform,
-  TouchableOpacity,
-  Dimensions
+  TouchableOpacity, 
+  FlatList,
+  Alert,
+  ActivityIndicator,
+  useWindowDimensions,
+  TextInput,
+  Keyboard
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming, 
-  withDelay,
-  FadeIn,
-  SlideInUp
-} from 'react-native-reanimated';
-
-import ParkingStatusCard from '../components/home/ParkingStatusCard';
-import ActionButton from '../components/ActionButton';
-import AppLayout from '../components/layout/AppLayout';
-import { MOCK_LOCATIONS, MOCK_PRICING_PLANS } from '../constants/mockData';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
-import { TabParamList } from '../navigation/TabNavigator';
-import theme from '../theme/theme';
-import RTLWrapper from '../components/layout/RTLWrapper';
+import { ParkingLocation, PricingPlan } from '../types';
+import { parkingService } from '../services/parking';
+import AppLayout from '../components/layout/AppLayout';
+import Animated, { 
+  FadeIn, 
+  FadeInDown 
+} from 'react-native-reanimated';
+import { firestore } from '../config/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
-const { width, height } = Dimensions.get('window');
-
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList & TabParamList, 'Home'>;
-
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { colors, themeMode } = useTheme();
+  const { themeMode, colors } = useTheme();
   const { t, language } = useLanguage();
-  const isRTL = language === 'ar';
-
-  // Animation values
-  const headerOpacity = useSharedValue(0);
-  const heroScale = useSharedValue(0.95);
-  const heroOpacity = useSharedValue(0);
-  const quickActionsTranslateY = useSharedValue(20);
-  const quickActionsOpacity = useSharedValue(0);
+  const { width } = useWindowDimensions();
   
-  // Show just top 3 locations for the home view
-  const topLocations = MOCK_LOCATIONS.slice(0, 3);
+  const [popularLocations, setPopularLocations] = useState<ParkingLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const textInputRef = useRef<TextInput>(null);
   
-  // Get the first pricing plan for basic info
-  const featuredPricingPlan = MOCK_PRICING_PLANS[0];
-
-  // Set up animations on mount
+  // Map coordinates for the specified location in Egypt
+  const mapRegion = {
+    latitude: 30.233440346065482,
+    longitude: 31.705995798063242,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+  
+  // Load popular parking locations from Firebase
   useEffect(() => {
-    // Animate header
-    headerOpacity.value = withTiming(1, { duration: 800 });
+    const fetchPopularLocations = async () => {
+      try {
+        setLoading(true);
+        
+        // Query Firebase directly
+        const locationsRef = collection(firestore, 'parkingLocations');
+        const q = query(
+          locationsRef,
+          orderBy('name'),
+          limit(5)
+        );
+        
+        const snapshot = await getDocs(q);
+        const locations = snapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        })) as ParkingLocation[];
+        
+        setPopularLocations(locations);
+      } catch (error) {
+        console.error('Error loading popular locations:', error);
+        Alert.alert(t('error'), String(error));
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Animate hero section
-    heroScale.value = withDelay(300, withSpring(1, { damping: 12 }));
-    heroOpacity.value = withDelay(200, withTiming(1, { duration: 800 }));
-    
-    // Animate quick actions
-    quickActionsTranslateY.value = withDelay(500, withSpring(0, { damping: 12 }));
-    quickActionsOpacity.value = withDelay(500, withTiming(1, { duration: 600 }));
+    fetchPopularLocations();
   }, []);
   
-  // Animated styles
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: headerOpacity.value,
-  }));
+  // Sample pricing plans
+  const pricingPlans: PricingPlan[] = [
+    {
+      id: '1',
+      name: 'Hourly',
+      description: 'Pay as you go',
+      locationId: 'all',
+      hourlyRate: 5,
+      dailyRate: 50,
+      monthlyRate: 800,
+      features: ['Flexible entry/exit', 'No commitment'],
+      isPopular: false
+    },
+    {
+      id: '2',
+      name: 'Daily',
+      description: 'For longer stays',
+      locationId: 'all',
+      hourlyRate: 0,
+      dailyRate: 40,
+      monthlyRate: 0,
+      features: ['24 hour access', 'Save vs hourly rate'],
+      isPopular: true
+    },
+    {
+      id: '3',
+      name: 'Monthly',
+      description: 'Regular parkers',
+      locationId: 'all',
+      hourlyRate: 0,
+      dailyRate: 0,
+      monthlyRate: 600,
+      features: ['Reserved spot', 'Best value'],
+      isPopular: false
+    }
+  ];
   
-  const heroAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: heroScale.value }],
-    opacity: heroOpacity.value,
-  }));
+  const renderLocationItem = ({ item }: { item: ParkingLocation }) => (
+    <TouchableOpacity 
+      style={[
+        styles.locationCard, 
+        { 
+          backgroundColor: themeMode === 'dark' ? colors.dark.surface : colors.light.surface,
+          width: width * 0.8,
+          marginRight: 16
+        }
+      ]}
+      activeOpacity={0.7}
+      onPress={() => {
+        // Navigate to parking details
+        Alert.alert(
+          t('parkingDetails'),
+          t('notImplemented'),
+          [{ text: t('ok') }]
+        );
+      }}
+    >
+      {item.images && item.images.length > 0 ? (
+        <View style={styles.locationImage}>
+          <MapView
+            style={styles.mapPreview}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={mapRegion}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+          >
+            <Marker
+              coordinate={{
+                latitude: mapRegion.latitude,
+                longitude: mapRegion.longitude,
+              }}
+              title={item.name}
+              description={item.address}
+            >
+              <Ionicons name="location" size={24} color={colors.accent} />
+            </Marker>
+          </MapView>
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0)']}
+            style={styles.mapGradient}
+          />
+        </View>
+      ) : (
+        <View style={[styles.placeholderImage, { backgroundColor: colors.accent + '30' }]}>
+          <Ionicons name="car-outline" size={40} color={colors.accent} />
+        </View>
+      )}
+      
+      <View style={styles.locationInfo}>
+        <Text 
+          style={[
+            styles.locationName, 
+            { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+          ]}
+          numberOfLines={1}
+        >
+          {item.name}
+        </Text>
+        
+        <Text 
+          style={[
+            styles.locationAddress, 
+            { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+          ]}
+          numberOfLines={2}
+        >
+          {item.address}
+        </Text>
+        
+        <View style={styles.locationDetails}>
+          <View style={styles.locationDetail}>
+            <Ionicons 
+              name="car-outline" 
+              size={16} 
+              color={colors.accent} 
+              style={{ marginRight: 4 }}
+            />
+            <Text 
+              style={[
+                styles.locationDetailText, 
+                { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+              ]}
+            >
+              {item.availableSlots}/{item.totalSlots} {t('available')}
+            </Text>
+          </View>
+          
+          <View style={styles.locationDetail}>
+            <Ionicons 
+              name="cash-outline" 
+              size={16} 
+              color={colors.accent} 
+              style={{ marginRight: 4 }}
+            />
+            <Text 
+              style={[
+                styles.locationDetailText, 
+                { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+              ]}
+            >
+              LE {item.priceRange.min}-{item.priceRange.max}/{t('perHour')}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
   
-  const quickActionsAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: quickActionsTranslateY.value }],
-    opacity: quickActionsOpacity.value,
-  }));
+  const renderPricingItem = ({ item }: { item: PricingPlan }) => (
+    <TouchableOpacity 
+      style={[
+        styles.pricingCard, 
+        { 
+          backgroundColor: themeMode === 'dark' ? colors.dark.surface : colors.light.surface,
+          borderColor: item.isPopular ? colors.accent : 'transparent',
+        }
+      ]}
+      activeOpacity={0.7}
+      onPress={() => {
+        // Navigate to pricing details
+        navigation.navigate('PricesPage');
+      }}
+    >
+      {item.isPopular && (
+        <View style={[styles.popularBadge, { backgroundColor: colors.accent }]}>
+          <Text style={styles.popularBadgeText}>
+            Popular
+          </Text>
+        </View>
+      )}
+      
+      <Text 
+        style={[
+          styles.pricingName, 
+          { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+        ]}
+      >
+        {item.name}
+      </Text>
+      
+      <Text 
+        style={[
+          styles.pricingDescription, 
+          { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+        ]}
+      >
+        {item.description}
+      </Text>
+      
+      <View style={styles.pricingPrices}>
+        {item.hourlyRate > 0 && (
+          <View style={styles.priceItem}>
+            <Text 
+              style={[
+                styles.priceValue, 
+                { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+              ]}
+            >
+              LE {item.hourlyRate}
+            </Text>
+            <Text 
+              style={[
+                styles.priceLabel, 
+                { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+              ]}
+            >
+              {t('perHour')}
+            </Text>
+          </View>
+        )}
+        
+        {item.dailyRate > 0 && (
+          <View style={styles.priceItem}>
+            <Text 
+              style={[
+                styles.priceValue, 
+                { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+              ]}
+            >
+              LE {item.dailyRate}
+            </Text>
+            <Text 
+              style={[
+                styles.priceLabel, 
+                { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+              ]}
+            >
+              {t('perDay')}
+            </Text>
+          </View>
+        )}
+        
+        {item.monthlyRate > 0 && (
+          <View style={styles.priceItem}>
+            <Text 
+              style={[
+                styles.priceValue, 
+                { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+              ]}
+            >
+              LE {item.monthlyRate}
+            </Text>
+            <Text 
+              style={[
+                styles.priceLabel, 
+                { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+              ]}
+            >
+              {t('perMonth')}
+            </Text>
+          </View>
+        )}
+      </View>
+      
+      {item.features.length > 0 && (
+        <View style={styles.featuresList}>
+          {item.features.map((feature, index) => (
+            <View key={index} style={styles.featureItem}>
+              <Ionicons 
+                name="checkmark-circle" 
+                size={14} 
+                color={colors.accent} 
+                style={{ marginRight: 6 }}
+              />
+              <Text 
+                style={[
+                  styles.featureText, 
+                  { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+                ]}
+              >
+                {feature}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+      
+      <TouchableOpacity 
+        style={[styles.detailsButton, { backgroundColor: colors.accent + '20' }]}
+      >
+        <Text style={[styles.detailsButtonText, { color: colors.accent }]}>
+          {t('details')}
+        </Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const handleTextInputChange = (text: string) => {
+    setMessage(text);
+  };
+
+  const handleProfilePress = () => {
+    navigation.navigate('Account');
+  };
+
+  if (loading) {
+    return (
+      <AppLayout 
+        showLogo={true}
+        showProfileButton={true}
+        onProfilePress={handleProfilePress}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[
+            styles.loadingText, 
+            { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+          ]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
-    <AppLayout>
-      <ScrollView 
-        style={[styles.container, { backgroundColor: colors.background }]} 
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: theme.spacing['20'] }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Modern Header with Blur Effect */}
-        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
-          <BlurView 
-            intensity={70} 
-            tint={themeMode === 'dark' ? "dark" : "light"} 
-            style={[styles.headerBlur, {
-              borderBottomLeftRadius: theme.borders.radius['2xl'],
-              borderBottomRightRadius: theme.borders.radius['2xl'],
-            }]}
-          >
-            <RTLWrapper
-              style={[
-                styles.header,
-                { 
-                  backgroundColor: themeMode === 'dark' ? 'rgba(28, 28, 60, 0.5)' : 'rgba(245, 247, 250, 0.5)',
-                  paddingHorizontal: theme.spacing['6'],
-                  paddingVertical: theme.spacing['4']
-                }
-              ]}
-              ignoreArabic={true}
-            >
-              <View style={styles.logoContainer}>
-                <Image 
-                  source={require('../assets/images/Logo_With_Border.png')}
-                  style={[styles.logo, { marginRight: theme.spacing['2'] }]} 
-                  resizeMode="contain"
-                />
-              </View>
-              <AnimatedTouchableOpacity 
-                style={[styles.profileButton, { 
-                  borderColor: colors.accent,
-                  backgroundColor: themeMode === 'dark' ? 'rgba(42, 42, 79, 0.6)' : 'rgba(240, 240, 250, 0.6)'
-                }]} 
-                onPress={() => navigation.navigate('Account')}
-                activeOpacity={0.7}
-                entering={FadeIn.delay(800).duration(500)}
-              >
-                <Image 
-                  source={require('../assets/images/avatar-placeholder.png')} 
-                  style={styles.profileImage}
-                />
-              </AnimatedTouchableOpacity>
-            </RTLWrapper>
-          </BlurView>
-        </Animated.View>
-
+    <AppLayout 
+      showLogo={true}
+      showProfileButton={true}
+      onProfilePress={handleProfilePress}
+    >
+      <View style={styles.container}>
         {/* Hero Section */}
-        <Animated.View style={[
-          styles.heroSection,
-          heroAnimatedStyle,
-          { 
-            backgroundColor: colors.surface,
-            padding: theme.spacing['8'],
-            marginTop: theme.spacing['6'],
-            marginHorizontal: theme.spacing['4'],
-            borderRadius: theme.borders.radius['2xl'],
-            ...theme.shadows.xl,
-          }
-        ]}>
+        <Animated.View 
+          style={styles.heroSection}
+          entering={FadeInDown.duration(800).delay(300)}
+        >
           <Text style={[
-            styles.heroTitle,
-            { color: colors.text.primary, textAlign: 'left' }
-          ]}>{t('smartParking')}</Text>
+            styles.heroTitle, 
+            { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+          ]}>
+            {t('smartParking')}
+          </Text>
           <Text style={[
-            styles.heroSubtitle,
-            { 
-              color: colors.accent, 
-              textAlign: 'left',
-              marginBottom: theme.spacing['4']
-            }
-          ]}>{t('madeSimple')}</Text>
+            styles.heroSubtitle, 
+            { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+          ]}>
+            {t('madeSimple')}
+          </Text>
           <Text style={[
-            styles.heroDescription,
-            { color: colors.text.secondary, textAlign: 'left' }
+            styles.heroDescription, 
+            { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
           ]}>
             {t('homeDescription')}
           </Text>
-        </Animated.View>
-
-        {/* Quick Actions */}
-        <Animated.View style={[
-          styles.quickActionsContainer, 
-          quickActionsAnimatedStyle,
-          {
-            marginHorizontal: theme.spacing['4'],
-            marginTop: theme.spacing['8'],
-            marginBottom: theme.spacing['4'],
-          }
-        ]}>
-          <RTLWrapper style={{ width: '100%' }} ignoreArabic={true}>
-            <AnimatedTouchableOpacity 
-              style={[
-                styles.quickActionItem,
-                { 
-                  backgroundColor: colors.surface,
-                  padding: theme.spacing['5'],
-                  marginHorizontal: theme.spacing['1'],
-                  borderRadius: theme.borders.radius['2xl'],
-                  ...theme.shadows.lg,
-                }
-              ]} 
-              onPress={() => navigation.navigate('Parking')}
-              activeOpacity={0.8}
-              entering={SlideInUp.delay(600).duration(500)}
+          
+          <View style={[
+            styles.actionButtons,
+            { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
+          ]}>
+            <TouchableOpacity 
+              style={[styles.primaryButton, { backgroundColor: colors.accent }]}
+              onPress={() => {
+                // Navigate to find parking
+                navigation.navigate('Parking');
+              }}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name="car" size={24} color={colors.accent} />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
+              <Text style={styles.primaryButtonText}>
                 {t('findSpot')}
               </Text>
-            </AnimatedTouchableOpacity>
+            </TouchableOpacity>
             
-            <AnimatedTouchableOpacity 
-              style={[
-                styles.quickActionItem,
-                { 
-                  backgroundColor: colors.surface,
-                  padding: theme.spacing['5'],
-                  marginHorizontal: theme.spacing['1'],
-                  borderRadius: theme.borders.radius['2xl'],
-                  ...theme.shadows.lg,
-                }
-              ]} 
-              onPress={() => navigation.navigate('Monitor')}
-              activeOpacity={0.8}
-              entering={SlideInUp.delay(650).duration(500)}
+            <TouchableOpacity 
+              style={[styles.secondaryButton, { borderColor: colors.accent }]}
+              onPress={() => {
+                // Navigate to my bookings
+                navigation.navigate('PastBookings');
+              }}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name="time" size={24} color={colors.accent} />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
-                {t('bookNow')}
+              <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>
+                {t('myBookings')}
               </Text>
-            </AnimatedTouchableOpacity>
-            
-            <AnimatedTouchableOpacity 
-              style={[
-                styles.quickActionItem,
-                { 
-                  backgroundColor: colors.surface,
-                  padding: theme.spacing['5'],
-                  marginHorizontal: theme.spacing['1'],
-                  borderRadius: theme.borders.radius['2xl'],
-                  ...theme.shadows.lg,
-                }
-              ]} 
-              onPress={() => navigation.navigate('Connected')}
-              activeOpacity={0.8}
-              entering={SlideInUp.delay(700).duration(500)}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name="map" size={24} color={colors.accent} />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
-                {t('navigate')}
-              </Text>
-            </AnimatedTouchableOpacity>
-          </RTLWrapper>
-        </Animated.View>
-
-        {/* Dynamic Slot Status */}
-        <Animated.View 
-          style={[
-            styles.sectionHeader,
-            { flexDirection: isRTL ? 'row-reverse' : 'row' }
-          ]}
-          entering={FadeIn.delay(900).duration(500)}
-        >
-          <Text style={[
-            styles.sectionTitle,
-            { color: colors.text.primary }
-          ]}>{t('realTimeAvailability')}</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('Parking')}
-            activeOpacity={0.7}
-            style={[
-              styles.viewAllButton,
-              { flexDirection: isRTL ? 'row-reverse' : 'row' }
-            ]}
-          >
-            <Text style={[
-              styles.viewAllText,
-              { color: colors.accent, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }
-            ]}>{t('viewAll')}</Text>
-            <Ionicons 
-              name={isRTL ? "chevron-back" : "chevron-forward"} 
-              size={16} 
-              color={colors.accent} 
-            />
-          </TouchableOpacity>
-        </Animated.View>
-
-        <View style={styles.parkingCardsContainer}>
-          {topLocations.map((location, index) => (
-            <Animated.View 
-              key={location.id}
-              entering={SlideInUp.delay(1000 + index * 100).duration(500)}
-            >
-              <ParkingStatusCard  
-                location={location} 
-                onPress={() => {
-                  // Navigate to make reservation when logged in
-                  // For now just go to login
-                  navigation.navigate('Login');
-                }}
-              />
-            </Animated.View>
-          ))}
-        </View>
-
-        {/* Pricing Overview */}
-        <Animated.View 
-          style={[
-            styles.sectionHeader,
-            { flexDirection: isRTL ? 'row-reverse' : 'row' }
-          ]}
-          entering={FadeIn.delay(1200).duration(500)}
-        >
-          <Text style={[
-            styles.sectionTitle,
-            { color: colors.text.primary }
-          ]}>{t('pricingOverview')}</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('PricesPage')}
-            activeOpacity={0.7}
-            style={[
-              styles.viewAllButton,
-              { flexDirection: isRTL ? 'row-reverse' : 'row' }
-            ]}
-          >
-            <Text style={[
-              styles.viewAllText,
-              { color: colors.accent, marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }
-            ]}>{t('details')}</Text>
-            <Ionicons 
-              name={isRTL ? "chevron-back" : "chevron-forward"} 
-              size={16} 
-              color={colors.accent} 
-            />
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Animated.View 
-          style={[
-            styles.pricingOverview,
-            { 
-              backgroundColor: colors.surface,
-              ...theme.shadows.lg,
-            }
-          ]}
-          entering={SlideInUp.delay(1300).duration(500)}
-        >
-          <View style={styles.pricingRow}>
-            <View style={styles.pricingItem}>
-              <Text style={[
-                styles.pricingValue,
-                { color: colors.accent }
-              ]}>LE {featuredPricingPlan.hourlyRate}</Text>
-              <Text style={[
-                styles.pricingLabel,
-                { color: colors.text.secondary }
-              ]}>{t('perHour')}</Text>
-            </View>
-            <View style={[
-              styles.pricingDivider,
-              { backgroundColor: colors.divider }
-            ]} />
-            <View style={styles.pricingItem}>
-              <Text style={[
-                styles.pricingValue,
-                { color: colors.accent }
-              ]}>LE {featuredPricingPlan.dailyRate}</Text>
-              <Text style={[
-                styles.pricingLabel,
-                { color: colors.text.secondary }
-              ]}>{t('perDay')}</Text>
-            </View>
-            <View style={[
-              styles.pricingDivider,
-              { backgroundColor: colors.divider }
-            ]} />
-            <View style={styles.pricingItem}>
-              <Text style={[
-                styles.pricingValue,
-                { color: colors.accent }
-              ]}>LE {featuredPricingPlan.monthlyRate}</Text>
-              <Text style={[
-                styles.pricingLabel,
-                { color: colors.text.secondary }
-              ]}>{t('perMonth')}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </Animated.View>
-
-        {/* Call-to-Action Buttons */}
+        
+        {/* Map Section */}
         <Animated.View 
-          style={styles.ctaContainer}
-          entering={SlideInUp.delay(1400).duration(500)}
+          style={styles.mapContainer}
+          entering={FadeInDown.duration(800).delay(400)}
         >
-          <ActionButton 
-            title={t('login')} 
-            onPress={() => navigation.navigate('Login')}
-            style={{
-              ...styles.ctaButton,
-              ...theme.shadows.md
-            }}
-            size="large"
-            icon={<Ionicons name="log-in-outline" size={22} color="white" />}
-            iconPosition={isRTL ? "right" : "left"}
-          />
-          <ActionButton 
-            title={t('register')} 
-            variant="outline"
-            onPress={() => navigation.navigate('Register')}
-            style={{
-              ...styles.ctaButton,
-              ...theme.shadows.sm
-            }}
-            size="large"
-            icon={<Ionicons name="person-add-outline" size={22} color={colors.accent} />}
-            iconPosition={isRTL ? "right" : "left"}
+          <MapView
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={mapRegion}
+          >
+            <Marker
+              coordinate={{
+                latitude: mapRegion.latitude,
+                longitude: mapRegion.longitude,
+              }}
+              title="Bakisena Parking"
+              description="6PM4+7C, Cairo Governorate Desert, Al-Sharqia Governorate 7060010"
+            >
+              <Ionicons name="location" size={30} color={colors.accent} />
+            </Marker>
+          </MapView>
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0)']}
+            style={styles.mapGradient}
           />
         </Animated.View>
-      </ScrollView>
+        
+        {/* Message Input */}
+        <Animated.View 
+          style={[
+            styles.messageInputContainer,
+            { backgroundColor: themeMode === 'dark' ? colors.dark.surface : colors.light.surface }
+          ]}
+          entering={FadeInDown.duration(800).delay(500)}
+        >
+          <TextInput
+            ref={textInputRef}
+            style={[
+              styles.messageInput,
+              { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+            ]}
+            placeholder="Type a message..."
+            placeholderTextColor={themeMode === 'dark' ? colors.dark.text.hint : colors.light.text.hint}
+            value={message}
+            onChangeText={handleTextInputChange}
+            onSubmitEditing={Keyboard.dismiss}
+            blurOnSubmit={true}
+          />
+          <TouchableOpacity 
+            style={[styles.sendButton, { backgroundColor: colors.accent }]}
+            onPress={() => {
+              if (message.trim()) {
+                // Process message here
+                Alert.alert('Message', 'Your message has been sent!');
+                setMessage('');
+                Keyboard.dismiss();
+              }
+            }}
+          >
+            <Ionicons name="send" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+        
+        {/* Locations Section */}
+        <Animated.View 
+          style={styles.sectionContainer}
+          entering={FadeInDown.duration(800).delay(600)}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={[
+              styles.sectionTitle, 
+              { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+            ]}>
+              {t('realTimeAvailability')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                // Navigate to all locations
+                navigation.navigate('Parking');
+              }}
+            >
+              <Text style={[styles.viewAllText, { color: colors.accent }]}>
+                {t('viewAll')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <FlatList
+            data={popularLocations.length > 0 ? popularLocations : mockLocations}
+            renderItem={renderLocationItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+            ListEmptyComponent={
+              <View style={styles.emptyLocations}>
+                <Text style={[
+                  styles.emptyText, 
+                  { color: themeMode === 'dark' ? colors.dark.text.secondary : colors.light.text.secondary }
+                ]}>
+                  No locations available
+                </Text>
+              </View>
+            }
+          />
+        </Animated.View>
+        
+        {/* Pricing Section */}
+        <Animated.View 
+          style={styles.sectionContainer}
+          entering={FadeInDown.duration(800).delay(700)}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={[
+              styles.sectionTitle, 
+              { color: themeMode === 'dark' ? colors.dark.text.primary : colors.light.text.primary }
+            ]}>
+              {t('pricingOverview')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                // Navigate to all pricing plans
+                navigation.navigate('PricesPage');
+              }}
+            >
+              <Text style={[styles.viewAllText, { color: colors.accent }]}>
+                {t('viewAll')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.pricingContainer}>
+            {pricingPlans.map((plan) => (
+              <View key={plan.id} style={{ width: '100%', marginBottom: 16 }}>
+                {renderPricingItem({ item: plan })}
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+      </View>
     </AppLayout>
   );
 };
 
+// Mock locations in case Firebase is not available
+const mockLocations: ParkingLocation[] = [
+  {
+    id: '1',
+    name: 'Downtown Parking',
+    address: '6PM4+7C, Cairo Governorate Desert, Al-Sharqia Governorate 7060010',
+    images: ['https://example.com/image1.jpg'],
+    priceRange: { min: 5, max: 10 },
+    availableSlots: 25,
+    totalSlots: 50,
+    coordinates: { latitude: 30.233440346065482, longitude: 31.705995798063242 },
+    operatingHours: { open: '06:00', close: '22:00' },
+    amenities: ['CCTV', 'Security Guard', 'Covered Parking']
+  },
+  {
+    id: '2',
+    name: 'Mall Parking',
+    address: 'Mall of Egypt, 6th of October City',
+    images: ['https://example.com/image2.jpg'],
+    priceRange: { min: 10, max: 15 },
+    availableSlots: 120,
+    totalSlots: 300,
+    coordinates: { latitude: 29.9626, longitude: 31.0891 },
+    operatingHours: { open: '08:00', close: '23:00' },
+    amenities: ['CCTV', 'Security Guard', 'Covered Parking', 'EV Charging']
+  },
+  {
+    id: '3',
+    name: 'Airport Parking',
+    address: 'Cairo International Airport',
+    images: ['https://example.com/image3.jpg'],
+    priceRange: { min: 20, max: 40 },
+    availableSlots: 80,
+    totalSlots: 200,
+    coordinates: { latitude: 30.1219, longitude: 31.4056 },
+    operatingHours: { open: '00:00', close: '23:59' },
+    amenities: ['CCTV', 'Security Guard', 'Covered Parking', '24/7 Service']
+  }
+];
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {},
-  headerContainer: {
-    zIndex: 10,
-  },
-  headerBlur: {
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 150,
-    height: 60,
-  },
-  profileButton: {
-    padding: 2,
-    borderRadius: 20,
-    borderWidth: 2,
-  },
-  profileImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    paddingTop: 20,
   },
   heroSection: {
-    // Basic layout - other properties should be inline
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 30,
   },
   heroTitle: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  heroSubtitle: {
-    fontSize: theme.typography.fontSize['2xl'],
+    fontSize: 28,
     fontWeight: '700',
   },
+  heroSubtitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
   heroDescription: {
-    fontSize: theme.typography.fontSize.md,
-    lineHeight: theme.typography.lineHeight.md,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 24,
   },
-  quickActionsContainer: {
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
   },
-  quickActionItem: {
+  primaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapContainer: {
+    marginHorizontal: 24,
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 24,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  mapGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  messageInputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: theme.spacing['1'],
+    marginHorizontal: 24,
+    marginBottom: 24,
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  quickActionIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+  messageInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 8,
+    fontSize: 16,
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quickActionText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '600',
+  sectionContainer: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: theme.spacing['6'],
-    marginTop: theme.spacing['8'],
-    marginBottom: theme.spacing['4'],
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700',
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewAllText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 18,
     fontWeight: '600',
   },
-  parkingCardsContainer: {
-    marginHorizontal: theme.spacing['4'],
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
-  pricingOverview: {
-    borderRadius: theme.borders.radius['2xl'],
-    marginHorizontal: theme.spacing['4'],
-    padding: theme.spacing['5'],
+  locationCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  pricingRow: {
+  locationImage: {
+    height: 120,
+    width: '100%',
+    position: 'relative',
+  },
+  mapPreview: {
+    height: 120,
+    width: '100%',
+  },
+  placeholderImage: {
+    height: 120,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationInfo: {
+    padding: 16,
+  },
+  locationName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  locationAddress: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  locationDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  locationDetail: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  pricingItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: theme.spacing['3'],
+  locationDetailText: {
+    fontSize: 12,
   },
-  pricingValue: {
-    fontSize: theme.typography.fontSize.xl,
+  pricingContainer: {
+    paddingHorizontal: 16,
+  },
+  pricingCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderBottomLeftRadius: 8,
+  },
+  popularBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  pricingName: {
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: theme.spacing['1'],
+    marginBottom: 4,
   },
-  pricingLabel: {
-    fontSize: theme.typography.fontSize.sm,
+  pricingDescription: {
+    fontSize: 14,
+    marginBottom: 16,
   },
-  pricingDivider: {
-    width: 1,
-    height: 40,
-  },
-  ctaContainer: {
-    marginHorizontal: theme.spacing['4'],
-    marginTop: theme.spacing['8'],
+  pricingPrices: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  ctaButton: {
+  priceItem: {
+    alignItems: 'center',
+  },
+  priceValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  priceLabel: {
+    fontSize: 12,
+  },
+  featuresList: {
+    marginBottom: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  featureText: {
+    fontSize: 14,
+  },
+  detailsButton: {
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  detailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyLocations: {
+    width: 300,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+  },
+  loadingContainer: {
     flex: 1,
-    marginHorizontal: theme.spacing['2'],
-    height: 56,
-    borderRadius: theme.borders.radius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 
-export default HomeScreen; 
+export default HomeScreen;

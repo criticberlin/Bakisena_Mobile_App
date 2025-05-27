@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import ActionButton from '../components/ActionButton';
 import AppLayout from '../components/layout/AppLayout';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import { firestore } from '../config/firebase';
+import { collection, getDocs, doc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { useAuth } from '../components/AuthContext';
 
 interface ConnectedDevice {
   id: string;
@@ -13,59 +16,55 @@ interface ConnectedDevice {
   status: 'connected' | 'disconnected' | 'pairing';
   lastConnected: string;
   isActive: boolean;
+  userId?: string;
 }
-
-const mockDevices: ConnectedDevice[] = [
-  {
-    id: '1',
-    name: 'Tesla Model 3',
-    type: 'vehicle',
-    status: 'connected',
-    lastConnected: '2 minutes ago',
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: 'Apple Pay',
-    type: 'payment',
-    status: 'connected',
-    lastConnected: '1 hour ago',
-    isActive: true,
-  },
-  {
-    id: '3',
-    name: 'Google Home',
-    type: 'smart_home',
-    status: 'disconnected',
-    lastConnected: '2 days ago',
-    isActive: false,
-  },
-  {
-    id: '4',
-    name: 'Apple Watch',
-    type: 'wearable',
-    status: 'connected',
-    lastConnected: '5 minutes ago',
-    isActive: true,
-  },
-  {
-    id: '5',
-    name: 'PayPal',
-    type: 'payment',
-    status: 'connected',
-    lastConnected: '3 days ago',
-    isActive: true,
-  },
-];
 
 const ConnectedScreen = () => {
   const { themeMode, colors, switchStyles } = useTheme();
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
 
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
-  const [devices, setDevices] = useState<ConnectedDevice[]>(mockDevices);
+  const [devices, setDevices] = useState<ConnectedDevice[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+
+  // Fetch devices from Firebase
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    setLoading(true);
+    
+    // Create a query to get devices for the current user
+    const devicesRef = collection(firestore, 'connectedDevices');
+    const q = query(devicesRef, where('userId', '==', user.uid));
+    
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      try {
+        const deviceData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as ConnectedDevice[];
+        
+        console.log(`Fetched ${deviceData.length} connected devices`);
+        setDevices(deviceData);
+      } catch (error) {
+        console.error('Error fetching connected devices:', error);
+        Alert.alert(t('error'), String(error));
+      } finally {
+        setLoading(false);
+      }
+    }, (error) => {
+      console.error('Error in device snapshot listener:', error);
+      setLoading(false);
+      Alert.alert(t('error'), String(error));
+    });
+    
+    // Clean up listener on unmount
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const getDeviceIcon = (type: string) => {
     switch (type) {
@@ -82,10 +81,28 @@ const ConnectedScreen = () => {
     }
   };
 
-  const toggleDeviceStatus = (id: string) => {
-    setDevices(devices.map(device => 
-      device.id === id ? { ...device, isActive: !device.isActive } : device
-    ));
+  const toggleDeviceStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      // Update in Firestore
+      const deviceRef = doc(firestore, 'connectedDevices', id);
+      await updateDoc(deviceRef, {
+        isActive: !currentStatus,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      // No need to update local state as the onSnapshot listener will handle it
+      console.log(`Device ${id} status updated`);
+    } catch (error) {
+      console.error('Error updating device status:', error);
+      Alert.alert(t('error'), String(error));
+      
+      // Revert the toggle in the UI if the Firebase update fails
+      setDevices(prevDevices => 
+        prevDevices.map(device => 
+          device.id === id ? { ...device, isActive: currentStatus } : device
+        )
+      );
+    }
   };
 
   const filteredDevices = devices.filter(device => {
@@ -138,7 +155,7 @@ const ConnectedScreen = () => {
       
       <Switch
         value={device.isActive}
-        onValueChange={() => toggleDeviceStatus(device.id)}
+        onValueChange={() => toggleDeviceStatus(device.id, device.isActive)}
         trackColor={switchStyles.trackColor}
         thumbColor={switchStyles.thumbColor(device.isActive)}
         ios_backgroundColor={switchStyles.ios_backgroundColor}
@@ -167,6 +184,33 @@ const ConnectedScreen = () => {
     </TouchableOpacity>
   );
 
+  const handleAddDevice = () => {
+    // Navigate to add device screen or show modal
+    Alert.alert(
+      t('connected'),
+      t('notImplemented'),
+      [{ text: t('ok') }]
+    );
+  };
+
+  if (loading) {
+    return (
+      <AppLayout
+        paddingHorizontal={20}
+        paddingVertical={16}
+        scrollable={true}
+        bottomNavPadding={true}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout 
       paddingHorizontal={20} 
@@ -193,16 +237,17 @@ const ConnectedScreen = () => {
           <View style={styles.emptyState}>
             <Ionicons name="bluetooth-outline" size={48} color={currentColors.text.primary} />
             <Text style={[styles.emptyStateText, { color: currentColors.text.primary }]}>{t('noVehicles')}</Text>
-            <Text style={[styles.emptyStateSubText, { color: currentColors.text.primary }]}>{t('addVehicle')}</Text>
+            <Text style={[styles.emptyStateSubText, { color: currentColors.text.primary }]}>{t('notImplemented')}</Text>
           </View>
         )}
       </View>
       
       <View style={[styles.buttonContainer, { borderTopColor: currentColors.divider }]}>
         <ActionButton
-          title={t('addPaymentMethod')}
-          onPress={() => console.log('Connect new device')}
+          title={t('connected')}
+          onPress={handleAddDevice}
           variant="primary"
+          icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
         />
       </View>
     </AppLayout>
@@ -308,6 +353,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     marginBottom: 90,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 

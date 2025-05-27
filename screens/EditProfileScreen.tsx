@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,8 @@ import {
   ScrollView,
   TextInput,
   Image,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,11 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
+import { userService } from '../services/user';
+import { User } from '../types';
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../config/firebase';
 
 type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditProfile'>;
 
@@ -29,27 +35,149 @@ const EditProfileScreen: React.FC = () => {
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
 
-  // Mock user data - in a real app, this would come from a context/state
-  const [userData, setUserData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 234 567 8901',
-    profileImage: null as string | null,
-  });
+  // State variables
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userData, setUserData] = useState<User | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  
+  // Load user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const profile = await userService.getCurrentUserProfile();
+        
+        if (profile) {
+          setUserData(profile);
+          setName(profile.name || '');
+          setEmail(profile.email || '');
+          setPhone(profile.phone || '');
+          setProfileImage(profile.profileImage || null);
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+        Alert.alert(t('error'), t('errorLoadingProfile'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
-  const handleSave = () => {
-    // In a real app, you would save the user data to your backend here
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      
+      // Prepare updated profile data
+      const updatedProfile: Partial<User> = {
+        name,
+        phone,
+        profileImage
+      };
+      
+      // Update user profile in Firestore
+      await userService.updateUserProfile(updatedProfile);
+      
+      Alert.alert(
+        t('success'),
+        t('profileUpdated'),
+        [{ text: t('ok'), onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert(t('error'), t('errorUpdatingProfile'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(t('error'), t('permissionRequired'));
+        return;
+      }
+      
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        setLoading(true);
+        
+        // Upload image to Firebase Storage
+        const uri = result.assets[0].uri;
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        
+        // Create a unique filename
+        const filename = `profile_${userData?.id}_${new Date().getTime()}`;
+        const storageRef = ref(storage, `profile_images/${filename}`);
+        
+        // Upload and get download URL
+        await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(storageRef);
+        
+        // Update state with new image URL
+        setProfileImage(downloadURL);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t('error'), t('errorUploadingImage'));
+      setLoading(false);
+    }
+  };
+  
+  const handleDeleteAccount = async () => {
     Alert.alert(
-      t('save'),
-      t('registrationSuccess'),
-      [{ text: t('ok'), onPress: () => navigation.goBack() }]
+      t('deleteAccount'),
+      t('deleteAccountConfirmation'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('delete'), 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await userService.deleteUserAccount();
+              navigation.navigate('Onboarding');
+            } catch (error) {
+              console.error('Error deleting account:', error);
+              Alert.alert(t('error'), t('errorDeletingAccount'));
+              setLoading(false);
+            }
+          }
+        }
+      ]
     );
   };
 
-  const pickImage = () => {
-    // This would use image picker in a real app
-    Alert.alert(t('add'), t('appDescription'));
-  };
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -66,8 +194,13 @@ const EditProfileScreen: React.FC = () => {
         <TouchableOpacity 
           style={[styles.saveButton, { backgroundColor: currentColors.accent }]} 
           onPress={handleSave}
+          disabled={saving}
         >
-          <Text style={styles.saveButtonText}>{t('save')}</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.saveButtonText}>{t('save')}</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -82,8 +215,8 @@ const EditProfileScreen: React.FC = () => {
             style={styles.profileImageContainer}
             onPress={pickImage}
           >
-            {userData.profileImage ? (
-              <Image source={{ uri: userData.profileImage }} style={styles.profileImage} />
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <Image source={require('../assets/images/avatar-placeholder.png')} style={styles.profileImage} />
             )}
@@ -103,8 +236,8 @@ const EditProfileScreen: React.FC = () => {
               </Text>
               <TextInput
                 style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={userData.name}
-                onChangeText={(text) => setUserData(prev => ({ ...prev, name: text }))}
+                value={name}
+                onChangeText={setName}
                 placeholder={t('enterName')}
                 placeholderTextColor={currentColors.text.secondary}
               />
@@ -117,12 +250,13 @@ const EditProfileScreen: React.FC = () => {
               </Text>
               <TextInput
                 style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={userData.email}
-                onChangeText={(text) => setUserData(prev => ({ ...prev, email: text }))}
+                value={email}
+                onChangeText={setEmail}
                 placeholder={t('enterEmail')}
                 placeholderTextColor={currentColors.text.secondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={false}
               />
             </View>
             
@@ -133,8 +267,8 @@ const EditProfileScreen: React.FC = () => {
               </Text>
               <TextInput
                 style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={userData.phone}
-                onChangeText={(text) => setUserData(prev => ({ ...prev, phone: text }))}
+                value={phone}
+                onChangeText={setPhone}
                 placeholder={t('enterPhone')}
                 placeholderTextColor={currentColors.text.secondary}
                 keyboardType="phone-pad"
@@ -144,8 +278,11 @@ const EditProfileScreen: React.FC = () => {
         </BlurView>
         
         {/* Delete Account Button */}
-        <TouchableOpacity style={styles.deleteButton}>
-          <Text style={styles.deleteButtonText}>{t('delete')}</Text>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+        >
+          <Text style={styles.deleteButtonText}>{t('deleteAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </AppLayout>
@@ -176,6 +313,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    minWidth: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: '#FFFFFF',
@@ -245,6 +385,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 

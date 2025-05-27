@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   Image, 
   Switch,
   Alert,
-  I18nManager
+  I18nManager,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +21,8 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import ActionButton from '../components/ActionButton';
 import { useAuth } from '../components/AuthContext';
 import AppLayout from '../components/layout/AppLayout';
+import { userService } from '../services/user';
+import { User } from '../types';
 
 type AccountScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -27,7 +30,29 @@ const AccountScreen: React.FC = () => {
   const navigation = useNavigation<AccountScreenNavigationProp>();
   const { themeMode, colors, toggleTheme, switchStyles } = useTheme();
   const { t } = useLanguage();
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
+  
+  const [userData, setUserData] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const profile = await userService.getCurrentUserProfile();
+        setUserData(profile);
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -85,6 +110,19 @@ const AccountScreen: React.FC = () => {
     return null;
   }
 
+  if (loading || authLoading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={{ color: colors.text.primary, marginTop: 12 }}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <ScrollView 
@@ -101,16 +139,23 @@ const AccountScreen: React.FC = () => {
         {/* Profile Section */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.profileBlur}>
           <View style={[styles.profileContainer, { backgroundColor: colors.surface }]}>
-            <Image 
-              source={require('../assets/images/avatar-placeholder.png')} 
-              style={styles.avatar}
-            />
+            {userData?.profileImage ? (
+              <Image 
+                source={{ uri: userData.profileImage }} 
+                style={styles.avatar}
+              />
+            ) : (
+              <Image 
+                source={require('../assets/images/avatar-placeholder.png')} 
+                style={styles.avatar}
+              />
+            )}
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: colors.text.primary }]}>
-                {user.email}
+                {userData?.name || userData?.email}
               </Text>
               <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>
-                {user.email}
+                {userData?.email}
               </Text>
               <TouchableOpacity 
                 style={styles.editButton}
@@ -125,7 +170,7 @@ const AccountScreen: React.FC = () => {
                 onPress={handleLogout}
               >
                 <Text style={[styles.editButtonText, { color: colors.error || '#d00' }]}>
-                  Log out
+                  {t('logOut')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -176,16 +221,15 @@ const AccountScreen: React.FC = () => {
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={() => {
-                // Implement language change logic
+                // Navigate to settings screen where language can be changed
+                navigation.navigate('Settings');
               }}
             >
               <Ionicons name="language-outline" size={22} color={colors.accent} />
               <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
                 {t('language')}
               </Text>
-              <Text style={[styles.languageText, { color: colors.text.secondary }]}>
-                {/* Implement language display logic */}
-              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -265,6 +309,11 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 14,
     marginRight: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

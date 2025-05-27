@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   FlatList, 
   Image,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -15,45 +16,13 @@ import { BlurView } from 'expo-blur';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import { paymentService, PaymentMethod } from '../services/payments';
+import AppLayout from '../components/layout/AppLayout';
 
 type PaymentMethodsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PaymentMethods'>;
 
-// Payment method type
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'paypal' | 'applepay' | 'googlepay';
-  name: string;
-  details: string;
-  isDefault: boolean;
-}
-
 // Type for Ionicons names
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
-// Sample payment methods
-const mockPaymentMethods: PaymentMethod[] = [
-  {
-    id: '1',
-    type: 'card',
-    name: 'Visa',
-    details: '•••• •••• •••• 4242',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    type: 'card',
-    name: 'Mastercard',
-    details: '•••• •••• •••• 5678',
-    isDefault: false,
-  },
-  {
-    id: '3',
-    type: 'paypal',
-    name: 'PayPal',
-    details: 'user@example.com',
-    isDefault: false,
-  },
-];
 
 const PaymentMethodsScreen: React.FC = () => {
   const navigation = useNavigation<PaymentMethodsScreenNavigationProp>();
@@ -64,20 +33,55 @@ const PaymentMethodsScreen: React.FC = () => {
 
   const { t, language } = useLanguage();
   
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load user payment methods
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
+        setLoading(true);
+        const methods = await paymentService.getUserPaymentMethods();
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error('Error loading payment methods:', error);
+        Alert.alert(t('error'), String(error));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPaymentMethods();
+  }, []);
   
   const handleAddPaymentMethod = () => {
-    // Navigate to add payment method screen - using Settings as a placeholder for now
-    navigation.navigate('Settings');
+    // In a real implementation, this would navigate to an add payment method form
+    Alert.alert(
+      t('addPaymentMethod'),
+      t('notImplemented'),
+      [{ text: t('ok') }]
+    );
   };
   
-  const handleSetDefault = (id: string) => {
-    setPaymentMethods(
-      paymentMethods.map(method => ({
-        ...method,
-        isDefault: method.id === id,
-      }))
-    );
+  const handleSetDefault = async (id: string) => {
+    try {
+      setLoading(true);
+      await paymentService.setDefaultPaymentMethod(id);
+      
+      // Update the local state to reflect the change
+      setPaymentMethods(methods => 
+        methods.map(method => ({
+          ...method,
+          isDefault: method.id === id
+        }))
+      );
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error setting default payment method:', error);
+      Alert.alert(t('error'), String(error));
+      setLoading(false);
+    }
   };
   
   const handleDeletePaymentMethod = (id: string) => {
@@ -103,8 +107,17 @@ const PaymentMethodsScreen: React.FC = () => {
         },
         {
           text: t('delete'),
-          onPress: () => {
-            setPaymentMethods(paymentMethods.filter(method => method.id !== id));
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await paymentService.deletePaymentMethod(id);
+              setPaymentMethods(methods => methods.filter(method => method.id !== id));
+              setLoading(false);
+            } catch (error) {
+              console.error('Error deleting payment method:', error);
+              Alert.alert(t('error'), String(error));
+              setLoading(false);
+            }
           },
           style: 'destructive',
         },
@@ -211,6 +224,19 @@ const PaymentMethodsScreen: React.FC = () => {
       </View>
     </BlurView>
   );
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
     <View style={[
@@ -385,6 +411,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 

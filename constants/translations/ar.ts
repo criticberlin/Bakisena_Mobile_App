@@ -1,6 +1,6 @@
 export const ar = {
   // Common
-  appName: 'بكيسنا',
+  appName: 'باكيسنا',
   
   // Auth screens
   welcome: 'مرحباً',
@@ -135,7 +135,7 @@ export const ar = {
   backToHome: 'العودة إلى الرئيسية',
   
   // About Screen
-  appDescription: 'بكيسنا هو حل حديث لمواقف السيارات مصمم لجعل البحث وحجز مواقف السيارات بسيطًا وفعالًا.',
+  appDescription: 'باكيسنا هو حل حديث لمواقف السيارات مصمم لجعل البحث وحجز مواقف السيارات بسيطًا وفعالًا.',
   developer: 'المطور',
   developerInfo: 'فريق بكيسنا للجوال',
   contact: 'اتصل بنا',

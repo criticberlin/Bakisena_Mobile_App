@@ -66,6 +66,7 @@ export const en = {
   occupiedSlots: 'Occupied Slots',
   reservedSlots: 'Reserved Slots',
   totalSlots: 'Total Slots',
+  parkingDetails: 'Parking Details',
   
   // Booking
   bookParking: 'Book Parking',
@@ -85,6 +86,10 @@ export const en = {
   completed: 'Completed',
   cancelled: 'Cancelled',
   receipt: 'Receipt',
+  cancelBooking: 'Cancel Booking',
+  cancelBookingConfirmation: 'Are you sure you want to cancel this booking?',
+  bookingCancelled: 'Booking has been cancelled successfully',
+  bookingDetails: 'Booking Details',
   
   // Account
   profile: 'Profile',
@@ -194,4 +199,24 @@ export const en = {
   debitCard: 'Debit Card',
   mobilePay: 'Mobile Pay',
   cash: 'Cash',
+  
+  // Error messages
+  error: 'Error',
+  errorLoadingProfile: 'Error loading profile data',
+  errorUpdatingProfile: 'Error updating profile',
+  errorUploadingImage: 'Error uploading image',
+  errorDeletingAccount: 'Error deleting account',
+  permissionRequired: 'Permission required to access photos',
+  
+  // Success messages
+  success: 'Success',
+  profileUpdated: 'Profile updated successfully',
+  
+  // Profile
+  deleteAccount: 'Delete Account',
+  deleteAccountConfirmation: 'Are you sure you want to delete your account? This action cannot be undone.',
+  loading: 'Loading...',
+  
+  // General messages
+  notImplemented: 'This feature is not yet implemented',
 }; 

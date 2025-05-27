@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   StatusBar,
   TouchableOpacity,
   Platform,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -17,37 +18,107 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import { useAuth } from '../components/AuthContext';
 
 import ActionButton from '../components/ActionButton';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, ParkingSlot } from '../types';
 import theme from '../theme/theme';
-import { MOCK_LOCATIONS, MOCK_SLOTS, MOCK_USERS } from '../constants/mockData';
 import AppLayout from '../components/layout/AppLayout';
+import { collection, getDocs, query, where, getDoc, doc } from 'firebase/firestore';
+import { firestore } from '../config/firebase';
 
 type AdminDashboardScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AdminDashboard'>;
 
-// Helper function to get statistics
-const getStatistics = () => {
-  const totalSlots = MOCK_SLOTS.length;
-  const availableSlots = MOCK_SLOTS.filter(slot => slot.status === 'AVAILABLE').length;
-  const occupiedSlots = MOCK_SLOTS.filter(slot => slot.status === 'OCCUPIED').length;
-  const reservedSlots = MOCK_SLOTS.filter(slot => slot.status === 'RESERVED').length;
-  const outOfServiceSlots = MOCK_SLOTS.filter(slot => slot.status === 'OUT_OF_SERVICE').length;
-  const occupancyRate = Math.round((occupiedSlots / totalSlots) * 100);
-  
-  return {
-    totalSlots,
-    availableSlots,
-    occupiedSlots,
-    reservedSlots,
-    outOfServiceSlots,
-    occupancyRate
-  };
-};
+// Type for statistics
+interface ParkingStatistics {
+  totalSlots: number;
+  availableSlots: number;
+  occupiedSlots: number;
+  reservedSlots: number;
+  outOfServiceSlots: number;
+  occupancyRate: number;
+}
+
+// Type for slot data from Firestore
+interface SlotData {
+  id: string;
+  status: 'available' | 'occupied' | 'reserved' | 'maintenance';
+  [key: string]: any;
+}
 
 const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<AdminDashboardScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
   const { t, language } = useLanguage();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  
+  const [locations, setLocations] = useState<any[]>([]);
+  const [slots, setSlots] = useState<SlotData[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ParkingStatistics>({
+    totalSlots: 0,
+    availableSlots: 0,
+    occupiedSlots: 0,
+    reservedSlots: 0,
+    outOfServiceSlots: 0,
+    occupancyRate: 0
+  });
+  
+  // Fetch data from Firebase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch locations
+        const locationsSnapshot = await getDocs(collection(firestore, 'locations'));
+        const locationsData = locationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setLocations(locationsData);
+        
+        // Fetch parking slots
+        const slotsSnapshot = await getDocs(collection(firestore, 'parkingSlots'));
+        const slotsData = slotsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as SlotData[];
+        setSlots(slotsData);
+        
+        // Fetch users (for admin purposes)
+        const usersSnapshot = await getDocs(collection(firestore, 'users'));
+        const usersData = usersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setUsers(usersData);
+        
+        // Calculate statistics
+        const totalSlots = slotsData.length;
+        const availableSlots = slotsData.filter(slot => slot.status === 'available').length;
+        const occupiedSlots = slotsData.filter(slot => slot.status === 'occupied').length;
+        const reservedSlots = slotsData.filter(slot => slot.status === 'reserved').length;
+        const outOfServiceSlots = slotsData.filter(slot => slot.status === 'maintenance').length;
+        const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
+        
+        setStats({
+          totalSlots,
+          availableSlots,
+          occupiedSlots,
+          reservedSlots,
+          outOfServiceSlots,
+          occupancyRate
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching admin dashboard data:', error);
+        setLoading(false);
+        Alert.alert('Error', 'Failed to load dashboard data');
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Get current theme colors with fallbacks
   const currentColors = themeMode === 'light' ? 
@@ -76,10 +147,6 @@ const AdminDashboardScreen: React.FC = () => {
       secondary: currentColors?.text?.secondary || '#4B5563'
     }
   };
-  
-  // Get admin user and stats
-  const adminUser = MOCK_USERS.find(user => user.isAdmin);
-  const stats = getStatistics();
 
   const handleLogout = () => {
     Alert.alert(
@@ -174,6 +241,17 @@ const AdminDashboardScreen: React.FC = () => {
       borderRadius: theme.borders.radius.md,
       padding: theme.spacing.md,
       alignItems: 'center',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
     },
     statValue: {
       fontSize: theme.typography.fontSize['2xl'],
@@ -200,285 +278,190 @@ const AdminDashboardScreen: React.FC = () => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: theme.spacing.sm,
     },
     occupancyTitle: {
-      fontSize: 16,
-      color: safeColors.text.primary,
+      fontSize: theme.typography.fontSize.md,
       fontWeight: 'bold',
+      color: safeColors.text.primary,
     },
     occupancyValue: {
-      fontSize: 20,
+      fontSize: theme.typography.fontSize.lg,
       fontWeight: 'bold',
       color: safeColors.primary,
     },
-    progressBarBackground: {
-      height: 8,
-      backgroundColor: safeColors.divider,
-      borderRadius: 4,
+    barContainer: {
+      height: 12,
+      backgroundColor: 'rgba(229, 231, 235, 0.6)',
+      borderRadius: 6,
+      marginTop: theme.spacing.xs,
       overflow: 'hidden',
     },
-    progressBarFill: {
+    occupancyBar: {
       height: '100%',
-      borderRadius: 4,
+      backgroundColor: safeColors.primary,
+      borderRadius: 6,
+    },
+    legend: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      marginTop: theme.spacing.sm,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: theme.spacing.md,
+      marginTop: theme.spacing.xs,
+    },
+    legendColor: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: theme.spacing.xs,
+    },
+    legendText: {
+      fontSize: theme.typography.fontSize.xs,
+      color: safeColors.text.secondary,
     },
     quickActionsContainer: {
-      padding: 16,
+      marginTop: theme.spacing.md,
     },
-    quickActionsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
+    actionButton: {
+      marginTop: theme.spacing.md,
     },
-    quickActionButton: {
-      width: '48%',
-      backgroundColor: safeColors.surface,
-      borderRadius: 8,
-      padding: 16,
-      marginBottom: 16,
-      alignItems: 'center',
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 3,
-    },
-    quickActionIcon: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
+    loadingContainer: {
+      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 8,
-    },
-    quickActionIconText: {
-      fontSize: 24,
-    },
-    quickActionText: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: safeColors.text.primary,
-    },
-    locationCard: {
-      backgroundColor: safeColors.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3.84,
-      elevation: 5,
-    },
-    locationHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 16,
-    },
-    locationName: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: safeColors.text.primary,
-    },
-    locationAddress: {
-      fontSize: 14,
-      color: safeColors.text.secondary,
-      marginTop: 2,
-    },
-    locationStats: {
-      backgroundColor: safeColors.primary + '10',
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
-      borderRadius: theme.borders.radius.sm,
-    },
-    locationAvailability: {
-      fontSize: theme.typography.fontSize.xs,
-      fontWeight: 'bold',
-      color: safeColors.primary,
-    },
-    manageButton: {
-      marginTop: theme.spacing.md,
-      alignSelf: 'flex-end',
     },
   });
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={safeColors.primary} />
+          <Text style={{ marginTop: 16, color: safeColors.text.primary }}>Loading dashboard data...</Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
+  if (!user || !user.email) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: safeColors.text.primary }}>You need to be logged in as an admin to access this dashboard.</Text>
+          <ActionButton
+            title="Go to Login"
+            onPress={() => navigation.navigate('Login')}
+            style={{ marginTop: 16 }}
+          />
+        </View>
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout>
+    <AppLayout scrollable={false}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.welcomeText}>Admin Panel</Text>
-          <Text style={styles.userName}>{adminUser?.name || 'Administrator'}</Text>
+          <Text style={styles.welcomeText}>{t('welcomeAdmin' as any)}</Text>
+          <Text style={styles.userName}>{user.displayName || user.email}</Text>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t('logout' as any)}</Text>
         </TouchableOpacity>
       </View>
-
+      
       <ScrollView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: currentColors.background }]}
         contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
       >
         {/* Dashboard Overview */}
         <View style={styles.dashboardSection}>
-          <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+          <Text style={styles.sectionTitle}>{t('dashboardOverview' as any)}</Text>
           
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.totalSlots}</Text>
-              <Text style={styles.statLabel}>Total Slots</Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: safeColors.status.available + '20' }]}>
-              <Text style={[styles.statValue, { color: safeColors.status.available }]}>
-                {stats.availableSlots}
-              </Text>
-              <Text style={styles.statLabel}>Available</Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: safeColors.status.occupied + '20' }]}>
-              <Text style={[styles.statValue, { color: safeColors.status.occupied }]}>
-                {stats.occupiedSlots}
-              </Text>
-              <Text style={styles.statLabel}>Occupied</Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: safeColors.status.reserved + '20' }]}>
-              <Text style={[styles.statValue, { color: safeColors.status.reserved }]}>
-                {stats.reservedSlots}
-              </Text>
-              <Text style={styles.statLabel}>Reserved</Text>
-            </View>
-          </View>
-          
+          {/* Occupancy Rate Card */}
           <View style={styles.occupancyCard}>
             <View style={styles.occupancyHeader}>
-              <Text style={styles.occupancyTitle}>Current Occupancy Rate</Text>
+              <Text style={styles.occupancyTitle}>{t('parkingOccupancy' as any)}</Text>
               <Text style={styles.occupancyValue}>{stats.occupancyRate}%</Text>
             </View>
-            
-            <View style={styles.progressBarBackground}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { 
-                    width: `${stats.occupancyRate}%`,
-                    backgroundColor: stats.occupancyRate > 80 
-                      ? safeColors.error 
-                      : stats.occupancyRate > 50 
-                      ? safeColors.warning 
-                      : safeColors.success
-                  }
-                ]} 
-              />
+            <View style={styles.barContainer}>
+              <View style={[styles.occupancyBar, { width: `${stats.occupancyRate}%` }]} />
+            </View>
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: safeColors.status.available }]} />
+                <Text style={styles.legendText}>{t('available' as any)}: {stats.availableSlots}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: safeColors.status.occupied }]} />
+                <Text style={styles.legendText}>{t('occupied' as any)}: {stats.occupiedSlots}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: safeColors.status.reserved }]} />
+                <Text style={styles.legendText}>{t('reserved' as any)}: {stats.reservedSlots}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: safeColors.status.outOfService }]} />
+                <Text style={styles.legendText}>{t('maintenance' as any)}: {stats.outOfServiceSlots}</Text>
+              </View>
+            </View>
+          </View>
+          
+          {/* Statistics Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{locations.length}</Text>
+              <Text style={styles.statLabel}>{t('locations' as any)}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.totalSlots}</Text>
+              <Text style={styles.statLabel}>{t('totalSlots' as any)}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{users.length}</Text>
+              <Text style={styles.statLabel}>{t('registeredUsers' as any)}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.occupiedSlots + stats.reservedSlots}</Text>
+              <Text style={styles.statLabel}>{t('activeBookings' as any)}</Text>
             </View>
           </View>
         </View>
-
+        
         {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Management Tools</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => navigation.navigate('SlotManagement')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: safeColors.primary + '20' }]}>
-                <Text style={styles.quickActionIconText}>🅿️</Text>
-              </View>
-              <Text style={styles.quickActionText}>Manage Slots</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => navigation.navigate('UserManagement')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: safeColors.secondary + '20' }]}>
-                <Text style={styles.quickActionIconText}>👥</Text>
-              </View>
-              <Text style={styles.quickActionText}>User Management</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => navigation.navigate('Reports')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: safeColors.info + '20' }]}>
-                <Text style={styles.quickActionIconText}>📊</Text>
-              </View>
-              <Text style={styles.quickActionText}>Reports</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => navigation.navigate('PricesPage')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: safeColors.accent + '20' }]}>
-                <Text style={styles.quickActionIconText}>💰</Text>
-              </View>
-              <Text style={styles.quickActionText}>Pricing Plans</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Location Status */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Location Status</Text>
+          <Text style={styles.sectionTitle}>{t('quickActions' as any)}</Text>
+          <View style={styles.quickActionsContainer}>
+            <ActionButton 
+              title={t('manageUsers' as any)}
+              onPress={() => navigation.navigate('UserManagement')}
+              style={styles.actionButton}
+            />
+            <ActionButton 
+              title={t('manageSlots' as any)}
+              onPress={() => navigation.navigate('SlotManagement')}
+              style={styles.actionButton}
+            />
+            <ActionButton 
+              title={t('viewReports' as any)}
+              onPress={() => navigation.navigate('Reports')}
+              style={styles.actionButton}
+            />
+            <ActionButton 
+              title={t('manageParkingAreas' as any)}
+              onPress={() => navigation.navigate('ParkingManagement')}
+              style={styles.actionButton}
+            />
           </View>
-          
-          {MOCK_LOCATIONS.map(location => {
-            const locationSlots = MOCK_SLOTS.filter(slot => slot.locationId === location.id);
-            const availableCount = locationSlots.filter(slot => slot.status === 'AVAILABLE').length;
-            const availabilityPercentage = Math.round((availableCount / locationSlots.length) * 100);
-            
-            return (
-              <View key={location.id} style={styles.locationCard}>
-                <View style={styles.locationHeader}>
-                  <View>
-                    <Text style={styles.locationName}>{location.name}</Text>
-                    <Text style={styles.locationAddress}>{location.address}</Text>
-                  </View>
-                  <View style={styles.locationStats}>
-                    <Text style={styles.locationAvailability}>
-                      {availableCount}/{locationSlots.length} Available
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.progressBarBackground}>
-                  <View 
-                    style={[
-                      styles.progressBarFill, 
-                      { 
-                        width: `${availabilityPercentage}%`,
-                        backgroundColor: availabilityPercentage < 20 
-                          ? safeColors.error 
-                          : availabilityPercentage < 50 
-                          ? safeColors.warning 
-                          : safeColors.success
-                      }
-                    ]} 
-                  />
-                </View>
-                
-                <ActionButton
-                  title="Manage Location"
-                  variant="outline"
-                  onPress={() => {
-                    // Navigate to location management in a real app
-                    console.log(`Manage location ${location.id}`);
-                  }}
-                  style={styles.manageButton}
-                />
-              </View>
-            );
-          })}
         </View>
       </ScrollView>
     </AppLayout>
   );
 };
 
-export default AdminDashboardScreen; 
+export default AdminDashboardScreen;

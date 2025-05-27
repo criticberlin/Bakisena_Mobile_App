@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,8 @@ import {
   StatusBar,
   TouchableOpacity,
   Platform,
-  TextInput
+  TextInput,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -15,17 +16,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import PricingCard from '../components/prices/PricingCard';
 import ActionButton from '../components/ActionButton';
-import { MOCK_LOCATIONS, MOCK_PRICING_PLANS } from '../constants/mockData';
 import { RootStackParamList, PricingPlan } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { firestore } from '../config/firebase';
 
 type PricesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PricesPage'>;
 
 const PricesScreen: React.FC = () => {
   const navigation = useNavigation<PricesScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
+
+  // State for locations and pricing plans
+  const [locations, setLocations] = useState<any[]>([]);
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Get current theme colors - ensure we have default fallbacks
   const currentColors = themeMode === 'light' ? 
@@ -45,19 +53,59 @@ const PricesScreen: React.FC = () => {
   const isRTL = language === 'ar';
   
   // State for the cost estimator
-  const [selectedLocation, setSelectedLocation] = useState(MOCK_LOCATIONS[0].id);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [hours, setHours] = useState('1');
   const [days, setDays] = useState('0');
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
+  // Fetch location and pricing data from Firestore
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch locations
+        const locationsSnapshot = await getDocs(collection(firestore, 'locations'));
+        const locationsData = locationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setLocations(locationsData);
+        
+        // Set initial selected location if locations exist
+        if (locationsData.length > 0) {
+          setSelectedLocation(locationsData[0].id);
+        }
+        
+        // Fetch pricing plans
+        const plansSnapshot = await getDocs(collection(firestore, 'pricingPlans'));
+        const plansData = plansSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as PricingPlan[];
+        setPricingPlans(plansData);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load pricing data. Please try again later.');
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
   // Filter plans based on location
   const getLocationPlans = (locationId: string): PricingPlan[] => {
-    return MOCK_PRICING_PLANS.filter(plan => plan.locationId === locationId);
+    return pricingPlans.filter(plan => plan.locationId === locationId);
   };
 
   // Calculate estimated cost
   const calculateEstimatedCost = () => {
-    const selectedPlan = MOCK_PRICING_PLANS.find(plan => plan.locationId === selectedLocation);
+    if (!selectedLocation) return;
+    
+    const selectedPlan = pricingPlans.find(plan => plan.locationId === selectedLocation);
     
     if (selectedPlan) {
       const hoursNum = parseInt(hours) || 0;
@@ -98,6 +146,35 @@ const PricesScreen: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={currentColors.primary} />
+          <Text style={[styles.loadingText, { color: textColors.primary }]}>
+            {t('loadingPrices' as any)}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: textColors.primary }]}>
+            {error}
+          </Text>
+          <ActionButton
+            title={t('tryAgain' as any)}
+            onPress={() => navigation.replace('PricesPage')}
+          />
+        </View>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout scrollable={true} paddingHorizontal={0} paddingVertical={0}>
       <StatusBar
@@ -114,24 +191,24 @@ const PricesScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
         >
           <Text style={[styles.backButtonText, { color: currentColors.primary }]}>
-            {isRTL ? '→' : '←'} {t('back')}
+            {isRTL ? '→' : '←'} {t('back' as any)}
           </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textColors.primary }]}>{t('pricingPlans')}</Text>
+        <Text style={[styles.headerTitle, { color: textColors.primary }]}>{t('pricingPlans' as any)}</Text>
         <View style={{ width: 50 }} />
       </View>
       
       <View style={[styles.container, { backgroundColor: currentColors.background }]}>
         {/* Intro Section */}
         <View style={[styles.introSection, { backgroundColor: currentColors.primary + '10' }]}>
-          <Text style={[styles.introTitle, { color: textColors.primary }]}>{t('transparentPricing')}</Text>
+          <Text style={[styles.introTitle, { color: textColors.primary }]}>{t('transparentPricing' as any)}</Text>
           <Text style={[styles.introDescription, { color: textColors.secondary }]}>
-            {t('pricingDescription')}
+            {t('pricingDescription' as any)}
           </Text>
         </View>
         
         {/* Pricing Plans by Location */}
-        {MOCK_LOCATIONS.map(location => (
+        {locations.map(location => (
           <View key={location.id} style={styles.locationSection}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{location.name}</Text>
@@ -153,8 +230,8 @@ const PricesScreen: React.FC = () => {
         
         {/* Cost Estimator */}
         <View style={styles.estimatorSection}>
-          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('costEstimator')}</Text>
-          <Text style={[styles.sectionSubtitle, { color: textColors.secondary }]}>{t('calculateExpenses')}</Text>
+          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('costEstimator' as any)}</Text>
+          <Text style={[styles.sectionSubtitle, { color: textColors.secondary }]}>{t('calculateExpenses' as any)}</Text>
           
           <View style={[styles.estimatorCard, { 
             backgroundColor: currentColors.surface,
@@ -171,9 +248,9 @@ const PricesScreen: React.FC = () => {
             }),
           }]}>
             <View style={styles.formGroup}>
-              <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('selectLocation')}</Text>
+              <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('selectLocation' as any)}</Text>
               <View style={styles.selectContainer}>
-                {MOCK_LOCATIONS.map(location => (
+                {locations.map(location => (
                   <TouchableOpacity
                     key={location.id}
                     style={[
@@ -208,7 +285,7 @@ const PricesScreen: React.FC = () => {
             
             <View style={[styles.durationContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('hours')}</Text>
+                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('hours' as any)}</Text>
                 <TextInput
                   style={[styles.input, { 
                     backgroundColor: currentColors.background,
@@ -225,7 +302,7 @@ const PricesScreen: React.FC = () => {
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('days')}</Text>
+                <Text style={[styles.formLabel, { color: textColors.primary }]}>{t('days' as any)}</Text>
                 <TextInput
                   style={[styles.input, { 
                     backgroundColor: currentColors.background,
@@ -243,14 +320,14 @@ const PricesScreen: React.FC = () => {
             </View>
             
             <ActionButton
-              title={t('calculateCost')}
+              title={t('calculateCost' as any)}
               onPress={calculateEstimatedCost}
               style={styles.calculateButton}
             />
             
             {estimatedCost !== null && (
               <View style={[styles.estimatedCostContainer, { backgroundColor: currentColors.primary + '15' }]}>
-                <Text style={[styles.estimatedCostLabel, { color: textColors.secondary }]}>{t('estimatedCost')}</Text>
+                <Text style={[styles.estimatedCostLabel, { color: textColors.secondary }]}>{t('estimatedCost' as any)}</Text>
                 <Text style={[styles.estimatedCostValue, { color: currentColors.accent }]}>LE {estimatedCost.toFixed(2)}</Text>
               </View>
             )}
@@ -259,23 +336,23 @@ const PricesScreen: React.FC = () => {
         
         {/* Payment Methods */}
         <View style={styles.paymentMethodsSection}>
-          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('acceptedPayments')}</Text>
+          <Text style={[styles.sectionTitle, { color: textColors.primary }]}>{t('acceptedPayments' as any)}</Text>
           <View style={styles.paymentMethodsContainer}>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>💳</Text>
-              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('creditCard')}</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('creditCard' as any)}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>🏦</Text>
-              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('debitCard')}</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('debitCard' as any)}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>📱</Text>
-              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('mobilePay')}</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('mobilePay' as any)}</Text>
             </View>
             <View style={styles.paymentMethod}>
               <Text style={styles.paymentMethodIcon}>💸</Text>
-              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('cash')}</Text>
+              <Text style={[styles.paymentMethodText, { color: textColors.secondary }]}>{t('cash' as any)}</Text>
             </View>
           </View>
         </View>
@@ -423,6 +500,26 @@ const styles = StyleSheet.create({
   paymentMethodText: {
     fontSize: 12,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });
 

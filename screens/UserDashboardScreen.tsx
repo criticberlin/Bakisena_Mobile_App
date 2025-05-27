@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -26,11 +27,12 @@ import Animated, {
 import { useTheme } from '../theme/ThemeContext';
 import ActionButton from '../components/ActionButton';
 import ReservationCard from '../components/dashboard/ReservationCard';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, Reservation } from '../types';
 import theme from '../theme/theme';
-import { MOCK_RESERVATIONS, MOCK_USERS } from '../constants/mockData';
 import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../components/AuthContext';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { firestore } from '../config/firebase';
 
 type UserDashboardScreenNavigationProp = StackNavigationProp<RootStackParamList, 'UserDashboard'>;
 
@@ -38,7 +40,9 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 const UserDashboardScreen: React.FC = () => {
   const { themeMode, colors } = useTheme();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
@@ -52,12 +56,41 @@ const UserDashboardScreen: React.FC = () => {
   const cardsOpacity = useSharedValue(0);
   const cardsTranslateY = useSharedValue(30);
   
-  // Filter reservations to show only this user's
-  const userReservations = user ? MOCK_RESERVATIONS.filter(res => res.userId === user._id) : [];
+  // Fetch user reservations from Firestore
+  useEffect(() => {
+    const fetchReservations = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const userReservationsQuery = query(
+          collection(firestore, 'reservations'),
+          where('userId', '==', user.uid),
+          orderBy('startTime', 'desc')
+        );
+        
+        const snapshot = await getDocs(userReservationsQuery);
+        const reservationsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Reservation[];
+        
+        setReservations(reservationsData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+        setLoading(false);
+      }
+    };
+    
+    if (user) {
+      fetchReservations();
+    }
+  }, [user]);
   
   // Get active and past reservations
-  const activeReservations = userReservations.filter(res => res.status === 'ACTIVE');
-  const pastReservations = userReservations.filter(res => res.status === 'COMPLETED');
+  const activeReservations = reservations.filter(res => res.status === 'ACTIVE');
+  const pastReservations = reservations.filter(res => res.status === 'COMPLETED');
 
   // Animations setup
   useEffect(() => {
@@ -93,22 +126,32 @@ const UserDashboardScreen: React.FC = () => {
     navigation.navigate('MainTabs');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading...</Text>
-      </View>
+      <AppLayout>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={{ marginTop: 16, fontSize: 16 }}>Loading...</Text>
+        </View>
+      </AppLayout>
     );
   }
+
   if (!user) {
     return (
       <AppLayout>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, marginBottom: 16 }}>Please log in to view your dashboard.</Text>
+          <ActionButton 
+            title="Go to Login" 
+            onPress={() => navigation.navigate('Login')}
+          />
         </View>
       </AppLayout>
     );
   }
+
+  const userName = user.displayName || 'User';
 
   return (
     <AppLayout>
@@ -123,7 +166,7 @@ const UserDashboardScreen: React.FC = () => {
           <View style={styles.headerContent}>
             <View style={styles.userInfo}>
               <Image 
-                source={require('../assets/images/avatar-placeholder.png')}
+                source={user.photoURL ? { uri: user.photoURL } : require('../assets/images/avatar-placeholder.png')}
                 style={styles.avatar}
               />
               <View style={styles.userTextContainer}>
@@ -131,7 +174,7 @@ const UserDashboardScreen: React.FC = () => {
                   Welcome back,
                 </Text>
                 <Text style={[styles.userName, { color: currentColors.text.primary }]}>
-                  {user.name}
+                  {userName}
                 </Text>
               </View>
             </View>

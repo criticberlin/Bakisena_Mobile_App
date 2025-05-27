@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   ScrollView, 
   FlatList,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,30 +17,10 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import { Vehicle } from '../types';
+import { vehicleService } from '../services/vehicles';
+import AppLayout from '../components/layout/AppLayout';
 
 type MyVehiclesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MyVehicles'>;
-
-// Sample vehicle data
-const mockVehicles: Vehicle[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    licensePlate: 'ABC 1234',
-    make: 'Toyota',
-    model: 'Camry',
-    color: 'Black',
-    type: 'CAR',
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    licensePlate: 'XYZ 5678',
-    make: 'Honda',
-    model: 'Civic',
-    color: 'Blue',
-    type: 'CAR',
-  },
-];
 
 const MyVehiclesScreen: React.FC = () => {
   const navigation = useNavigation<MyVehiclesScreenNavigationProp>();
@@ -50,16 +31,43 @@ const MyVehiclesScreen: React.FC = () => {
 
   const { t, language } = useLanguage();
   
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Load user vehicles
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        const userVehicles = await vehicleService.getUserVehicles();
+        setVehicles(userVehicles);
+      } catch (error) {
+        console.error('Error loading vehicles:', error);
+        Alert.alert(t('error'), String(error));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVehicles();
+  }, []);
   
   const handleAddVehicle = () => {
-    // Navigate to add vehicle screen - using Settings as a placeholder for now
-    navigation.navigate('Settings');
+    // In a real implementation, this would navigate to an add vehicle form
+    Alert.alert(
+      t('addVehicle'),
+      t('notImplemented'),
+      [{ text: t('ok') }]
+    );
   };
   
   const handleEditVehicle = (vehicle: Vehicle) => {
-    // Navigate to edit vehicle screen - using Settings as a placeholder for now
-    navigation.navigate('Settings');
+    // In a real implementation, this would navigate to an edit vehicle form
+    Alert.alert(
+      t('edit') + ' ' + vehicle.licensePlate,
+      t('notImplemented'),
+      [{ text: t('ok') }]
+    );
   };
   
   const handleDeleteVehicle = (vehicleId: string) => {
@@ -73,9 +81,17 @@ const MyVehiclesScreen: React.FC = () => {
         },
         {
           text: t('delete'),
-          onPress: () => {
-            // Remove vehicle from the list
-            setVehicles(vehicles.filter(v => v.id !== vehicleId));
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await vehicleService.deleteVehicle(vehicleId);
+              setVehicles(vehicles.filter(v => v.id !== vehicleId));
+              setLoading(false);
+            } catch (error) {
+              console.error('Error deleting vehicle:', error);
+              Alert.alert(t('error'), String(error));
+              setLoading(false);
+            }
           },
           style: 'destructive',
         },
@@ -154,6 +170,19 @@ const MyVehiclesScreen: React.FC = () => {
       </View>
     </BlurView>
   );
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
     <View style={[
@@ -313,6 +342,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 

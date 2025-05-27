@@ -1,9 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import AppLayout from '../components/layout/AppLayout';
 import { useLanguage } from '../constants/translations/LanguageContext';
+import { firestore } from '../config/firebase';
+import { doc, getDoc, collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
+
+interface ParkingStatistics {
+  totalSpaces: number;
+  occupiedSpaces: number;
+  reservedSpaces: number;
+  availableSpaces: number;
+  lastUpdated: string;
+}
+
+interface ParkingUsageStats {
+  peakHours: string;
+  occupancyRate: string;
+  averageDuration: number;
+}
 
 const MonitorScreen = () => {
   const { themeMode, colors } = useTheme();
@@ -11,36 +27,144 @@ const MonitorScreen = () => {
 
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
-
   
-  // Simulated data for parking occupancy
-  const parkingData = {
-    totalSpaces: 120,
-    occupiedSpaces: 78,
-    reservedSpaces: 12,
-    availableSpaces: 30,
-  };
+  // State for parking data
+  const [parkingData, setParkingData] = useState<ParkingStatistics | null>(null);
+  const [usageStats, setUsageStats] = useState<ParkingUsageStats | null>(null);
+  const [notifications, setNotifications] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Calculate percentages for visualization
-  const occupancyPercentage = (parkingData.occupiedSpaces / parkingData.totalSpaces) * 100;
-  const reservedPercentage = (parkingData.reservedSpaces / parkingData.totalSpaces) * 100;
-  const availablePercentage = (parkingData.availableSpaces / parkingData.totalSpaces) * 100;
+  const occupancyPercentage = parkingData ? (parkingData.occupiedSpaces / parkingData.totalSpaces) * 100 : 0;
+  const reservedPercentage = parkingData ? (parkingData.reservedSpaces / parkingData.totalSpaces) * 100 : 0;
+  const availablePercentage = parkingData ? (parkingData.availableSpaces / parkingData.totalSpaces) * 100 : 0;
 
-  // Mock function to refresh data - in a real app this would fetch from an API
-  const refreshData = () => {
-    console.log('Refreshing parking data...');
-    // Implementation would fetch real-time data
+  // Function to fetch parking statistics from Firebase
+  const fetchParkingStatistics = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch the current parking statistics
+      const statsRef = doc(firestore, 'parkingStatistics', 'current');
+      const statsSnapshot = await getDoc(statsRef);
+      
+      if (statsSnapshot.exists()) {
+        const data = statsSnapshot.data() as ParkingStatistics;
+        console.log('Fetched parking statistics:', data);
+        setParkingData(data);
+      } else {
+        console.log('No parking statistics found');
+        // Create default data if none exists
+        setParkingData({
+          totalSpaces: 120,
+          occupiedSpaces: 78,
+          reservedSpaces: 12,
+          availableSpaces: 30,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      
+      // Fetch usage statistics
+      const usageRef = doc(firestore, 'parkingStatistics', 'usage');
+      const usageSnapshot = await getDoc(usageRef);
+      
+      if (usageSnapshot.exists()) {
+        const data = usageSnapshot.data() as ParkingUsageStats;
+        console.log('Fetched usage statistics:', data);
+        setUsageStats(data);
+      } else {
+        // Create default usage stats if none exists
+        setUsageStats({
+          peakHours: '08:00 - 10:00, 17:00 - 19:00',
+          occupancyRate: '65%',
+          averageDuration: 3.2
+        });
+      }
+      
+      // Fetch notifications
+      const notificationsRef = collection(firestore, 'notifications');
+      const q = query(notificationsRef, where('read', '==', false));
+      const notificationsSnapshot = await getDocs(q);
+      
+      const notificationMessages = notificationsSnapshot.docs.map(doc => doc.data().message as string);
+      setNotifications(notificationMessages.length > 0 ? notificationMessages : [
+        t('totalSlots'),
+        t('settings')
+      ]);
+      
+    } catch (error) {
+      console.error('Error fetching parking data:', error);
+      Alert.alert(t('error'), String(error));
+      
+      // Set default data in case of error
+      setParkingData({
+        totalSpaces: 120,
+        occupiedSpaces: 78,
+        reservedSpaces: 12,
+        availableSpaces: 30,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      setUsageStats({
+        peakHours: '08:00 - 10:00, 17:00 - 19:00',
+        occupancyRate: '65%',
+        averageDuration: 3.2
+      });
+      
+      setNotifications([
+        t('totalSlots'),
+        t('settings')
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Set up real-time listener for parking statistics
+  useEffect(() => {
+    // Set up listener for real-time updates
+    const statsRef = doc(firestore, 'parkingStatistics', 'current');
+    
+    const unsubscribe = onSnapshot(statsRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data() as ParkingStatistics;
+        console.log('Real-time parking statistics update:', data);
+        setParkingData(data);
+      }
+    }, (error) => {
+      console.error('Error in statistics snapshot listener:', error);
+    });
+    
+    // Clean up listener on unmount
+    return () => unsubscribe();
+  }, []);
 
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      refreshData();
+      fetchParkingStatistics();
       return () => {
         // Cleanup if needed
       };
     }, [])
   );
+
+  if (loading || !parkingData || !usageStats) {
+    return (
+      <AppLayout
+        paddingHorizontal={20}
+        paddingVertical={16}
+        scrollable={true}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
@@ -95,28 +219,26 @@ const MonitorScreen = () => {
           <Text style={[styles.dataTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('statistics')}</Text>
           <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('home')}:</Text>
-            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>08:00 - 10:00, 17:00 - 19:00</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>{usageStats.peakHours}</Text>
           </View>
           <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('parkingStatus')}:</Text>
-            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>65%</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>{usageStats.occupancyRate}</Text>
           </View>
           <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('duration')}:</Text>
-            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>3.2</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>{usageStats.averageDuration}</Text>
           </View>
         </View>
         
         <View style={[styles.alertsCard, { backgroundColor: currentColors.surface }]}>
           <Text style={[styles.alertsTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('notifications')}</Text>
-          <View style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-            <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
-            <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('totalSlots')}</Text>
-          </View>
-          <View style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-            <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
-            <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('settings')}</Text>
-          </View>
+          {notifications.map((notification, index) => (
+            <View key={index} style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
+              <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{notification}</Text>
+            </View>
+          ))}
         </View>
       </View>
     </AppLayout>
@@ -257,6 +379,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   alertText: {
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
   },
 });

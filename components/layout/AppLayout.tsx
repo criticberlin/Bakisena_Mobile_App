@@ -7,7 +7,10 @@ import {
   ScrollView, 
   StatusBar, 
   View,
-  useWindowDimensions
+  useWindowDimensions,
+  Image,
+  TouchableOpacity,
+  Text
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { 
@@ -21,6 +24,8 @@ import { useTheme } from '../../theme/ThemeContext';
 import theme from '../../theme/theme';
 import { useLanguage } from '../../constants/translations/LanguageContext';
 import RTLWrapper from './RTLWrapper';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -33,6 +38,12 @@ interface AppLayoutProps {
   animate?: boolean;
   statusBarStyle?: 'light-content' | 'dark-content';
   bottomNavPadding?: boolean;
+  showHeader?: boolean;
+  headerTitle?: string;
+  showProfileButton?: boolean;
+  showLogo?: boolean;
+  customHeader?: React.ReactNode;
+  onProfilePress?: () => void;
 }
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -54,11 +65,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   animate = true,
   statusBarStyle,
   bottomNavPadding = true,
+  showHeader = false,
+  headerTitle,
+  showProfileButton = false,
+  showLogo = false,
+  customHeader,
+  onProfilePress,
 }) => {
   const insets = useSafeAreaInsets();
   const { themeMode, colors } = useTheme();
   const { width, height } = useWindowDimensions();
   const { isRTL } = useLanguage();
+  const navigation = useNavigation();
+  
+  // Get current theme colors
+  const currentColors = themeMode === 'dark' ? colors.dark : colors.light;
   
   // Animation values
   const contentOpacity = useSharedValue(0);
@@ -101,6 +122,59 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   // Auto-detect status bar style based on theme if not provided
   const autoStatusBarStyle = statusBarStyle || 
     (themeMode === 'dark' ? 'light-content' : 'dark-content');
+
+  // Header component
+  const Header = () => {
+    if (customHeader) {
+      return customHeader;
+    }
+    
+    if (!showHeader && !showLogo && !showProfileButton) {
+      return null;
+    }
+    
+    return (
+      <View style={[
+        styles.header,
+        { 
+          backgroundColor: showHeader ? currentColors.surface : 'transparent',
+          borderBottomColor: showHeader ? currentColors.divider : 'transparent',
+          paddingTop: topPadding,
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+        }
+      ]}>
+        {showLogo && (
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('../../assets/images/Logo_With_Border.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+        
+        {headerTitle && (
+          <View style={styles.titleContainer}>
+            <Text style={[styles.headerTitle, { color: currentColors.text.primary }]}>
+              {headerTitle}
+            </Text>
+          </View>
+        )}
+        
+        <View style={styles.headerRight}>
+          {showProfileButton && (
+            <TouchableOpacity 
+              style={[styles.profileButton, { backgroundColor: currentColors.surface }]}
+              onPress={onProfilePress || (() => navigation.navigate('Account' as never))}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person" size={22} color={colors.accent} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
   
   const Content = () => (
     <Animated.View 
@@ -112,6 +186,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         backgroundColor="transparent" 
         translucent 
       />
+      <Header />
       <AppThemeWrapper 
         containerType={containerType}
         style={[
@@ -130,18 +205,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   // Wrap with scrollview if scrollable is true
   const ContentWithScroll = () => (
     <RTLWrapper applyTextStyles={true} ignoreArabic={false} style={{ flex: 1 }}>
+      <Header />
       <AnimatedScrollView
         style={[styles.scrollView, { paddingHorizontal: 0 }, fadeStyle]}
         contentContainerStyle={{ 
           flexGrow: 1,
           paddingHorizontal: responsivePadding.paddingHorizontal, 
-          paddingTop: paddingVertical ? theme.scale(paddingVertical) : topPadding,
+          paddingTop: 0, // Header is outside scrollview now
           paddingBottom: paddingVertical ? theme.scale(paddingVertical) : theme.scale(24) + bottomNavHeight,
         }}
         showsVerticalScrollIndicator={true}
         overScrollMode="always"
         bounces={true}
         entering={animate ? FadeIn.duration(300) : undefined}
+        keyboardShouldPersistTaps="handled"
       >
         <StatusBar 
           barStyle={autoStatusBarStyle} 
@@ -198,6 +275,48 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 60,
+    width: '100%',
+    paddingHorizontal: theme.scale(16),
+    borderBottomWidth: 1,
+  },
+  logoContainer: {
+    height: 40,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    height: 40,
+    width: 40,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: '600',
+  },
+  headerRight: {
+    height: 40,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
   },
 });
 

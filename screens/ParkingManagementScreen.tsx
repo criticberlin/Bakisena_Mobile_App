@@ -215,8 +215,8 @@ const ParkingManagementScreen: React.FC = () => {
 
     try {
       const levelData = {
-        name: `Level ${selectedLocation.levels?.length + 1 || 1}`,
-        number: selectedLocation.levels?.length + 1 || 1,
+        name: `Level ${selectedLocation.levels ? selectedLocation.levels.length + 1 : 1}`,
+        number: selectedLocation.levels ? selectedLocation.levels.length + 1 : 1,
         locationId: selectedLocation.id,
         totalSlots: 0,
         availableSlots: 0,

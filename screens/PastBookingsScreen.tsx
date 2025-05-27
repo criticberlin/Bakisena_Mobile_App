@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   FlatList, 
-  Image
+  Image,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,85 +18,15 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
 import { Reservation } from '../types';
+import { bookingService } from '../services/bookings';
 
 type PastBookingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PastBookings'>;
 
-// Mock data for bookings
-const mockBookings: Reservation[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    slotId: 'slot1',
-    locationId: 'loc1',
-    vehicleId: 'vehicle1',
-    startTime: '2023-05-10T09:00:00',
-    endTime: '2023-05-10T12:00:00',
-    status: 'COMPLETED',
-    totalCost: 15,
-    paymentStatus: 'PAID',
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    slotId: 'slot2',
-    locationId: 'loc2',
-    vehicleId: 'vehicle1',
-    startTime: '2023-05-12T14:00:00',
-    endTime: '2023-05-12T16:00:00',
-    status: 'COMPLETED',
-    totalCost: 10,
-    paymentStatus: 'PAID',
-  },
-  {
-    id: '3',
-    userId: 'user1',
-    slotId: 'slot3',
-    locationId: 'loc1',
-    vehicleId: 'vehicle2',
-    startTime: '2023-05-15T10:00:00',
-    endTime: '2023-05-15T14:00:00',
-    status: 'COMPLETED',
-    totalCost: 20,
-    paymentStatus: 'PAID',
-  },
-  {
-    id: '4',
-    userId: 'user1',
-    slotId: 'slot1',
-    locationId: 'loc3',
-    vehicleId: 'vehicle1',
-    startTime: '2023-05-20T09:00:00',
-    endTime: '2023-05-20T13:00:00',
-    status: 'ACTIVE',
-    totalCost: 20,
-    paymentStatus: 'PAID',
-  },
-  {
-    id: '5',
-    userId: 'user1',
-    slotId: 'slot4',
-    locationId: 'loc2',
-    vehicleId: 'vehicle2',
-    startTime: '2023-05-25T15:00:00',
-    endTime: '2023-05-25T17:00:00',
-    status: 'CANCELLED',
-    totalCost: 10,
-    paymentStatus: 'REFUNDED',
-  },
-];
+// Location cache for mockup - In a real app, we would fetch location details from Firebase
+const locationCache: {[key: string]: string} = {};
 
-// Location names for mockup
-const locationNames: {[key: string]: string} = {
-  'loc1': 'City Center Parking',
-  'loc2': 'Mall Parking Complex',
-  'loc3': 'Downtown Parking Zone',
-};
-
-// Vehicle details for mockup
-const vehicleDetails: {[key: string]: {plate: string, type: string}} = {
-  'vehicle1': { plate: 'ABC 1234', type: 'CAR' },
-  'vehicle2': { plate: 'XYZ 5678', type: 'CAR' },
-};
+// Vehicle cache for mockup - In a real app, we would fetch vehicle details from Firebase
+const vehicleCache: {[key: string]: {plate: string, type: string}} = {};
 
 const PastBookingsScreen: React.FC = () => {
   const navigation = useNavigation<PastBookingsScreenNavigationProp>();
@@ -105,17 +37,36 @@ const PastBookingsScreen: React.FC = () => {
 
   const { t, language } = useLanguage();
   
-  const [bookings, setBookings] = useState<Reservation[]>(mockBookings);
+  const [bookings, setBookings] = useState<Reservation[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
+  const [loading, setLoading] = useState(true);
   
-  const getFilteredBookings = () => {
-    if (activeTab === 'all') return bookings;
-    return bookings.filter(booking => 
-      activeTab === 'active' ? booking.status === 'ACTIVE' :
-      activeTab === 'completed' ? booking.status === 'COMPLETED' :
-      booking.status === 'CANCELLED'
-    );
-  };
+  // Load bookings based on active tab
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        let fetchedBookings: Reservation[] = [];
+        
+        if (activeTab === 'all') {
+          fetchedBookings = await bookingService.getUserBookings();
+        } else {
+          fetchedBookings = await bookingService.getBookingsByStatus(
+            activeTab.toUpperCase() as 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+          );
+        }
+        
+        setBookings(fetchedBookings);
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+        Alert.alert(t('error'), String(error));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBookings();
+  }, [activeTab]);
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -159,6 +110,63 @@ const PastBookingsScreen: React.FC = () => {
         return status;
     }
   };
+  
+  const getLocationName = (locationId: string) => {
+    // In a real app, this would fetch location details from Firestore
+    // For this example, we'll use a simple cache
+    if (!locationCache[locationId]) {
+      locationCache[locationId] = `Location ${locationId.substring(0, 4)}`;
+    }
+    return locationCache[locationId];
+  };
+  
+  const getVehicleDetails = (vehicleId: string) => {
+    // In a real app, this would fetch vehicle details from Firestore
+    // For this example, we'll use a simple cache
+    if (!vehicleCache[vehicleId]) {
+      vehicleCache[vehicleId] = {
+        plate: `${vehicleId.substring(0, 3)} ${vehicleId.substring(3, 7)}`,
+        type: 'CAR'
+      };
+    }
+    return vehicleCache[vehicleId];
+  };
+  
+  const handleCancelBooking = (bookingId: string) => {
+    Alert.alert(
+      t('cancelBooking'),
+      t('cancelBookingConfirmation'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('confirm'), 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await bookingService.cancelBooking(bookingId);
+              
+              // Update the booking in the local state
+              setBookings(prevBookings => 
+                prevBookings.map(booking => 
+                  booking.id === bookingId 
+                    ? { ...booking, status: 'CANCELLED', paymentStatus: 'REFUNDED' } 
+                    : booking
+                )
+              );
+              
+              setLoading(false);
+              Alert.alert(t('success'), t('bookingCancelled'));
+            } catch (error) {
+              console.error('Error cancelling booking:', error);
+              Alert.alert(t('error'), String(error));
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const renderBookingItem = ({ item }: { item: Reservation }) => (
     <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.bookingBlur}>
@@ -170,8 +178,11 @@ const PastBookingsScreen: React.FC = () => {
         activeOpacity={0.7}
         onPress={() => {
           // Navigate to booking details
-          // Using settings as a placeholder
-          navigation.navigate('Settings');
+          Alert.alert(
+            t('bookingDetails'),
+            t('notImplemented'),
+            [{ text: t('ok') }]
+          );
         }}
       >
         <View style={[
@@ -189,7 +200,7 @@ const PastBookingsScreen: React.FC = () => {
                 textAlign: language === 'ar' ? 'right' : 'left' 
               }
             ]}>
-              {locationNames[item.locationId] || 'Unknown Location'}
+              {getLocationName(item.locationId)}
             </Text>
             <Text style={[
               styles.bookingId, 
@@ -198,7 +209,7 @@ const PastBookingsScreen: React.FC = () => {
                 textAlign: language === 'ar' ? 'right' : 'left' 
               }
             ]}>
-              {t('bookingId')}: #{item.id}
+              {t('bookingId')}: #{item.id.substring(0, 8)}
             </Text>
           </View>
           <View style={[
@@ -240,7 +251,7 @@ const PastBookingsScreen: React.FC = () => {
           <View style={styles.detailItem}>
             <Ionicons name="car-outline" size={18} color={currentColors.accent} style={styles.detailIcon} />
             <Text style={[styles.detailText, { color: currentColors.text.secondary }]}>
-              {vehicleDetails[item.vehicleId]?.plate || 'Unknown Vehicle'}
+              {getVehicleDetails(item.vehicleId).plate}
             </Text>
           </View>
           
@@ -261,6 +272,13 @@ const PastBookingsScreen: React.FC = () => {
               styles.actionButton,
               { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
             ]}
+            onPress={() => {
+              Alert.alert(
+                t('receipt'),
+                t('notImplemented'),
+                [{ text: t('ok') }]
+              );
+            }}
           >
             <Ionicons 
               name="receipt-outline" 
@@ -279,6 +297,7 @@ const PastBookingsScreen: React.FC = () => {
                 styles.actionButton,
                 { flexDirection: language === 'ar' ? 'row-reverse' : 'row' }
               ]}
+              onPress={() => handleCancelBooking(item.id)}
             >
               <Ionicons 
                 name="close-circle-outline" 
@@ -295,6 +314,19 @@ const PastBookingsScreen: React.FC = () => {
       </TouchableOpacity>
     </BlurView>
   );
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('loading')}
+          </Text>
+        </View>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -389,9 +421,9 @@ const PastBookingsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {getFilteredBookings().length > 0 ? (
+      {bookings.length > 0 ? (
         <FlatList
-          data={getFilteredBookings()}
+          data={bookings}
           renderItem={renderBookingItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.bookingsList}
@@ -529,6 +561,15 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     marginTop: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 

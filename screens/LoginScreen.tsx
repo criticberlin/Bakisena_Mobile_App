@@ -36,7 +36,6 @@ import ActionButton from '../components/ActionButton';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../constants/translations/LanguageContext';
-import { MOCK_USERS } from '../constants/mockData';
 import theme from '../theme/theme';
 import { useAuth } from '../components/AuthContext';
 import LoadingScreen from '../components/LoadingScreen';
@@ -63,6 +62,7 @@ const LoginScreen: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   
   // Animation values
   const logoOpacity = useSharedValue(0);
@@ -163,6 +163,7 @@ const LoginScreen: React.FC = () => {
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
             {/* Top Right Back Button */}
@@ -177,6 +178,7 @@ const LoginScreen: React.FC = () => {
             {/* App Logo */}
             <Animated.View 
               style={[styles.logoContainer, logoAnimatedStyle]}
+              entering={FadeInDown.duration(800).delay(200)}
             >
               <Image 
                 source={require('../assets/images/Logo_With_Border.png')}
@@ -188,6 +190,7 @@ const LoginScreen: React.FC = () => {
             {/* Header */}
             <Animated.View 
               style={[styles.header, logoAnimatedStyle]}
+              entering={FadeInDown.duration(800).delay(300)}
             >
               <Text style={[styles.title, { color: currentColors.text.primary }]}>
                 {t('welcomeBack')}
@@ -198,7 +201,10 @@ const LoginScreen: React.FC = () => {
             </Animated.View>
             
             {/* Form */}
-            <Animated.View style={[styles.formContainer, formAnimatedStyle]}>
+            <Animated.View 
+              style={[styles.formContainer, formAnimatedStyle]}
+              entering={FadeInUp.duration(800).delay(400)}
+            >
               <BlurView 
                 intensity={themeMode === 'dark' ? 20 : 10} 
                 tint={themeMode === 'dark' ? "dark" : "light"} 
@@ -206,18 +212,36 @@ const LoginScreen: React.FC = () => {
               >
                 <View style={[
                   styles.form, 
-                  { backgroundColor: themeMode === 'dark' ? 'rgba(40, 40, 82, 0.7)' : 'rgba(255, 255, 255, 0.7)' }
+                  { backgroundColor: themeMode === 'dark' 
+                    ? 'rgba(40, 40, 82, 0.75)' 
+                    : 'rgba(255, 255, 255, 0.75)' 
+                  }
                 ]}>
                   <View style={styles.inputContainer}>
-                    <View style={[styles.inputRow, { 
-                      borderColor: emailError ? colors.error : currentColors.divider,
-                      backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-                      flexDirection: isRTL ? 'row-reverse' : 'row'
-                    }]}>
+                    <View style={[
+                      styles.inputRow, 
+                      { 
+                        borderColor: emailError 
+                          ? colors.error 
+                          : focusedInput === 'email' 
+                            ? colors.accent 
+                            : currentColors.divider,
+                        backgroundColor: themeMode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.08)' 
+                          : 'rgba(0, 0, 0, 0.05)',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
+                        transform: [{ scale: focusedInput === 'email' ? 1.02 : 1 }]
+                      }
+                    ]}>
                       <Ionicons 
                         name="mail-outline" 
                         size={20} 
-                        color={emailError ? colors.error : colors.accent} 
+                        color={emailError 
+                          ? colors.error 
+                          : focusedInput === 'email' 
+                            ? colors.accent 
+                            : currentColors.text.secondary
+                        } 
                         style={[styles.inputIcon, { marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]} 
                       />
                       <TextInput
@@ -232,7 +256,11 @@ const LoginScreen: React.FC = () => {
                         placeholderTextColor={currentColors.text.hint}
                         value={email}
                         onChangeText={setEmail}
-                        onBlur={() => validateEmail(email)}
+                        onBlur={() => {
+                          validateEmail(email);
+                          setFocusedInput(null);
+                        }}
+                        onFocus={() => setFocusedInput('email')}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -249,24 +277,46 @@ const LoginScreen: React.FC = () => {
                   </View>
                   
                   <View style={styles.inputContainer}>
-                    <View style={[styles.inputRow, { 
-                      borderColor: passwordError ? colors.error : currentColors.divider,
-                      backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-                      flexDirection: isRTL ? 'row-reverse' : 'row'
-                    }]}>
+                    <View style={[
+                      styles.inputRow, 
+                      { 
+                        borderColor: passwordError 
+                          ? colors.error 
+                          : focusedInput === 'password' 
+                            ? colors.accent 
+                            : currentColors.divider,
+                        backgroundColor: themeMode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.08)' 
+                          : 'rgba(0, 0, 0, 0.05)',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
+                        transform: [{ scale: focusedInput === 'password' ? 1.02 : 1 }]
+                      }
+                    ]}>
                       <Ionicons 
                         name="lock-closed-outline" 
                         size={20} 
-                        color={passwordError ? colors.error : colors.accent} 
+                        color={passwordError 
+                          ? colors.error 
+                          : focusedInput === 'password' 
+                            ? colors.accent 
+                            : currentColors.text.secondary
+                        } 
                         style={[styles.inputIcon, { marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]} 
                       />
                       <TextInput
-                        style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
+                        style={[
+                          styles.input, 
+                          { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }
+                        ]}
                         placeholder={t('password')}
                         placeholderTextColor={currentColors.text.hint}
                         value={password}
                         onChangeText={setPassword}
-                        onBlur={() => validatePassword(password)}
+                        onBlur={() => {
+                          validatePassword(password);
+                          setFocusedInput(null);
+                        }}
+                        onFocus={() => setFocusedInput('password')}
                         secureTextEntry={!showPassword}
                       />
                       <TouchableOpacity 
@@ -277,7 +327,10 @@ const LoginScreen: React.FC = () => {
                         <Ionicons 
                           name={showPassword ? "eye-off-outline" : "eye-outline"} 
                           size={20} 
-                          color={currentColors.text.secondary} 
+                          color={focusedInput === 'password' 
+                            ? colors.accent 
+                            : currentColors.text.secondary
+                          } 
                         />
                       </TouchableOpacity>
                     </View>
@@ -300,14 +353,18 @@ const LoginScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
                   
-                  <ActionButton
-                    title={t('login')}
-                    onPress={handleLogin}
-                    isLoading={loading}
-                    style={styles.loginButton}
-                    size="large"
-                    icon={<Ionicons name="log-in-outline" size={20} color="white" />}
-                  />
+                  <Animated.View
+                    entering={FadeInUp.duration(800).delay(500)}
+                  >
+                    <ActionButton
+                      title={t('login')}
+                      onPress={handleLogin}
+                      isLoading={loading}
+                      style={styles.loginButton}
+                      size="large"
+                      icon={<Ionicons name="log-in-outline" size={20} color="white" />}
+                    />
+                  </Animated.View>
                 </View>
               </BlurView>
             </Animated.View>
@@ -381,11 +438,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: theme.spacing[6],
+    marginBottom: theme.spacing[4],
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 150,
+    height: 150,
   },
   header: {
     alignItems: 'center',
@@ -463,10 +520,12 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: theme.typography.fontSize.md,
+    marginRight: 4,
   },
   registerLink: {
     fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
+    marginLeft: 4,
   },
   backButton: {
     flexDirection: 'row',
