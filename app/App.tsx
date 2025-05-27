@@ -38,7 +38,13 @@ const AppContent = () => {
 
   useEffect(() => {
     // Initialize admin account
-    initializeAdminAccount().catch(console.error);
+    initializeAdminAccount().then(({ error }) => {
+      if (error) {
+        console.error('Failed to initialize admin account:', error);
+      } else {
+        console.log('Admin account initialized successfully');
+      }
+    });
   }, []);
 
   // Create navigation theme

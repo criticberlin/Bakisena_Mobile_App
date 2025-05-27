@@ -8,6 +8,13 @@ import {
 import { doc, setDoc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
+export interface UserFirebase {
+  uid: string;
+  email: string;
+  isAdmin: boolean;
+  name?: string;
+}
+
 // Register a new user
 export const register = async (email: string, password: string) => {
   try {
@@ -67,10 +74,24 @@ export const logout = async () => {
 };
 
 // Get current user
-export const getCurrentUser = (): User | null => {
+export const getCurrentUser = async (): Promise<UserFirebase | null> => {
   const user = auth.currentUser;
-  console.log('Current user:', user?.uid || 'No user logged in');
-  return user;
+  if (!user) return null;
+
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userData = userDoc.data();
+
+    return {
+      uid: user.uid,
+      email: user.email!,
+      isAdmin: userData?.isAdmin || false,
+      name: userData?.name
+    };
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
 };
 
 // Subscribe to auth state changes
@@ -85,27 +106,27 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 // Create admin user
 export const createAdminUser = async (email: string, password: string, name: string) => {
   try {
-    // Create the user in Firebase Auth
+    // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Create the user document in Firestore with admin role
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      name,
-      email,
+    const user = userCredential.user;
+
+    // Create admin document in Firestore
+    await setDoc(doc(db, 'users', user.uid), {
+      email: user.email,
+      name: name,
       isAdmin: true,
       createdAt: new Date().toISOString()
     });
 
     return {
-      user: userCredential.user,
-      error: null
+      uid: user.uid,
+      email: user.email,
+      isAdmin: true,
+      name: name
     };
-  } catch (error: any) {
-    console.error('Admin user creation error:', error.code, error.message);
-    return {
-      user: null,
-      error: error.message
-    };
+  } catch (error) {
+    console.error('Error creating admin user:', error);
+    throw error;
   }
 };
 
@@ -118,13 +139,18 @@ export const initializeAdminAccount = async () => {
     // First check if admin exists in Firestore
     const adminQuery = query(
       collection(db, 'users'),
-      where('email', '==', adminEmail),
-      where('isAdmin', '==', true)
+      where('email', '==', adminEmail)
     );
     const adminSnapshot = await getDocs(adminQuery);
     
     if (!adminSnapshot.empty) {
-      console.log('Admin account already exists in Firestore');
+      // Admin exists, update isAdmin to true
+      const adminDoc = adminSnapshot.docs[0];
+      await setDoc(doc(db, 'users', adminDoc.id), {
+        ...adminDoc.data(),
+        isAdmin: true
+      }, { merge: true });
+      console.log('Admin account updated in Firestore');
       return { error: null };
     }
 
@@ -145,7 +171,13 @@ export const initializeAdminAccount = async () => {
     if (error.code === 'auth/email-already-in-use') {
       // If the email is already in use, try to sign in to verify credentials
       try {
-        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        const userCredential = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        // Update the user document to ensure isAdmin is true
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          email: adminEmail,
+          isAdmin: true,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         console.log('Admin account exists and credentials are valid');
         return { error: null };
       } catch (signInError: any) {
