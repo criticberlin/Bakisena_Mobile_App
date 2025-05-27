@@ -47,6 +47,7 @@ const AppNavigator = () => {
             <Stack.Screen name="UserManagement" component={AdminDashboardScreen} />
             <Stack.Screen name="SlotManagement" component={ParkingManagementScreen} />
             <Stack.Screen name="Reports" component={AdminDashboardScreen} />
+            <Stack.Screen name="PricesPage" component={PricesScreen} />
           </>
         ) : (
           // User is regular, show main tabs and user screens
@@ -68,10 +69,8 @@ const AppNavigator = () => {
         <>
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="LoginOptions" component={LoginOptionsScreen} />
-          
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="ForgotPassword" component={LoginScreen} />
         </>
       )}
     </Stack.Navigator>

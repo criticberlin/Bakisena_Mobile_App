@@ -1,20 +1,30 @@
 {
   "indexes": [
     {
-      "collectionGroup": "parking_slots",
+      "collectionGroup": "parking_levels",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" }
+        { "fieldPath": "locationId", "order": "ASCENDING" },
+        { "fieldPath": "number", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "parking_sections",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "levelId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "parking_slots",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "locationId", "order": "ASCENDING" },
-        { "fieldPath": "levelId", "order": "ASCENDING" },
-        { "fieldPath": "sectionId", "order": "ASCENDING" }
+        { "fieldPath": "sectionId", "order": "ASCENDING" },
+        { "fieldPath": "number", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     }
   ],
