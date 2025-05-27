@@ -96,11 +96,6 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     marginTop: 40,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
     elevation: 6,
   },
   textContainer: {

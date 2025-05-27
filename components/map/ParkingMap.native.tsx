@@ -205,7 +205,167 @@ const darkMapStyle = [
   }
 ];
 
-const lightMapStyle: any[] = []; // Empty style for light mode
+// Light map style to make the map match the light theme
+const lightMapStyle = [
+  {
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#f5f5f5"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#f5f5f5"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.land_parcel",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#bdbdbd"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#eeeeee"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#e5e5e5"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#ffffff"
+      }
+    ]
+  },
+  {
+    "featureType": "road.arterial",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#dadada"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#e5e5e5"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.station",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#eeeeee"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#c9c9c9"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
+      }
+    ]
+  }
+];
 
 // Default map region - Cairo, Egypt
 const defaultRegion = {
@@ -236,8 +396,17 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   onZoomIn,
   onZoomOut,
   onNavigate,
+  themeMode = 'dark', // Default to dark mode if not provided
+  colors, // Use passed colors if available
 }) => {
-  const { colors, themeMode } = useTheme();
+  // Get theme if not provided through props
+  const themeContext = useTheme();
+  const currentThemeMode = themeMode || themeContext.themeMode;
+  const currentColors = colors || (currentThemeMode === 'dark' ? themeContext.colors.dark : themeContext.colors.light);
+  
+  // Use the appropriate map style based on theme
+  const mapStyle = currentThemeMode === 'dark' ? darkMapStyle : lightMapStyle;
+  
   const insets = useSafeAreaInsets();
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -318,7 +487,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   }, [isRealTime, parkingSpots]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Main Content - Parking Map */}
       <View style={styles.mapContainer}>
         {Platform.OS !== 'web' && (
@@ -327,11 +496,15 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
             style={styles.map}
             initialRegion={initialRegion}
             provider={PROVIDER_GOOGLE}
-            customMapStyle={themeMode === 'dark' ? darkMapStyle : lightMapStyle}
+            customMapStyle={mapStyle}
             showsUserLocation
             showsMyLocationButton={false}
             showsCompass={false}
             showsScale={false}
+            showsBuildings={true}
+            showsTraffic={false}
+            showsIndoors={false}
+            loadingEnabled={true}
             onMapReady={() => setMapReady(true)}
             rotateEnabled={true}
             pitchEnabled={true}
@@ -349,8 +522,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     width: MARKER_SIZE,
                     height: MARKER_SIZE,
                     borderRadius: MARKER_SIZE / 2,
-                    backgroundColor: spot.status === 'available' ? colors.success : colors.accent,
-                    borderColor: colors.secondary,
+                    backgroundColor: spot.status === 'available' ? currentColors.status.available : currentColors.status.reserved,
+                    borderColor: currentColors.secondary,
                     justifyContent: 'center',
                     alignItems: 'center',
                   },
@@ -368,12 +541,12 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                         borderRadius: BADGE_SIZE / 2,
                         backgroundColor: '#fff',
                         borderWidth: 1,
-                        borderColor: colors.success,
+                        borderColor: currentColors.success,
                         alignItems: 'center',
                         justifyContent: 'center',
                       },
                     ]}>
-                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.success }}>{spot.availableSpots ?? 1}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: currentColors.success }}>{spot.availableSpots ?? 1}</Text>
                     </View>
                   )}
                 </View>
@@ -381,23 +554,23 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                   <View style={[
                     styles.calloutContainer, 
                     { 
-                      backgroundColor: themeMode === 'dark' ? '#2A2A4F' : '#FFFFFF',
+                      backgroundColor: currentColors.surface,
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: themeMode === 'dark' ? 0.3 : 0.1,
+                      shadowOpacity: 0.3,
                       shadowRadius: 8,
                       elevation: 8 
                     }
                   ]}>
                     <Text style={[
                       styles.calloutTitle,
-                      { color: colors.text.primary }
+                      { color: currentColors.text.primary }
                     ]}>{spot.name || `Spot ${spot.id}`}</Text>
                     
                     <View style={styles.calloutStatusContainer}>
                       <View style={[
                         styles.calloutStatusIndicator, 
-                        { backgroundColor: spot.status === 'available' ? colors.success : colors.accent }
+                        { backgroundColor: spot.status === 'available' ? currentColors.success : currentColors.accent }
                       ]} />
                       <Text style={styles.calloutStatus}>
                         {spot.status === 'available' ? 'Available' : 'Reserved'}
@@ -407,30 +580,30 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     <View style={styles.calloutDetailsGrid}>
                       {spot.floor && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="layers-outline" size={16} color={colors.text.secondary} />
+                          <Ionicons name="layers-outline" size={16} color={currentColors.text.secondary} />
                           <Text style={[
                             styles.calloutDetail,
-                            { color: colors.text.secondary }
+                            { color: currentColors.text.secondary }
                           ]}>Floor {spot.floor}</Text>
                         </View>
                       )}
                       
                       {spot.price && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="cash-outline" size={16} color={colors.text.secondary} />
+                          <Ionicons name="cash-outline" size={16} color={currentColors.text.secondary} />
                           <Text style={[
                             styles.calloutDetail,
-                            { color: colors.text.secondary }
+                            { color: currentColors.text.secondary }
                           ]}>${spot.price}/hr</Text>
                         </View>
                       )}
                       
                       {spot.distance && (
                         <View style={styles.calloutDetailItem}>
-                          <Ionicons name="location-outline" size={16} color={colors.text.secondary} />
+                          <Ionicons name="location-outline" size={16} color={currentColors.text.secondary} />
                           <Text style={[
                             styles.calloutDetail,
-                            { color: colors.text.secondary }
+                            { color: currentColors.text.secondary }
                           ]}>{spot.distance} km</Text>
                         </View>
                       )}
@@ -440,9 +613,9 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                       style={[
                         styles.reserveButton,
                         { 
-                          backgroundColor: spot.status === 'available' ? colors.accent : 'rgba(255, 255, 255, 0.2)',
+                          backgroundColor: spot.status === 'available' ? currentColors.accent : 'rgba(255, 255, 255, 0.2)',
                           borderWidth: 1,
-                          borderColor: spot.status === 'available' ? 'transparent' : colors.divider
+                          borderColor: spot.status === 'available' ? 'transparent' : currentColors.divider
                         }
                       ]}
                       onPress={() => handleReserveSpot(spot)}
@@ -451,7 +624,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                     >
                       <Text style={[
                         styles.reserveButtonText,
-                        { color: spot.status === 'available' ? colors.text.primary : colors.text.disabled }
+                        { color: spot.status === 'available' ? currentColors.text.primary : currentColors.text.disabled }
                       ]}>
                         {spot.status === 'available' ? 'Reserve Spot' : 'Already Reserved'}
                       </Text>
@@ -473,26 +646,26 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
         
         {/* Map Controls: vertical stack on right side above nav bar */}
         <View style={styles.mapControlsSide}>
-          <TouchableOpacity style={styles.controlButton} onPress={handleZoomIn} activeOpacity={0.7}>
-            <Ionicons name="add" size={24} color={colors.text.primary} />
+          <TouchableOpacity style={[styles.controlButton, { backgroundColor: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)' }]} onPress={handleZoomIn} activeOpacity={0.7}>
+            <Ionicons name="add" size={24} color={currentColors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton} onPress={handleZoomOut} activeOpacity={0.7}>
-            <Ionicons name="remove" size={24} color={colors.text.primary} />
+          <TouchableOpacity style={[styles.controlButton, { backgroundColor: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)' }]} onPress={handleZoomOut} activeOpacity={0.7}>
+            <Ionicons name="remove" size={24} color={currentColors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton} onPress={() => mapRef.current?.animateToRegion(initialRegion, 500)} activeOpacity={0.7}>
-            <Ionicons name="locate" size={24} color={colors.text.primary} />
+          <TouchableOpacity style={[styles.controlButton, { backgroundColor: currentThemeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)' }]} onPress={() => mapRef.current?.animateToRegion(initialRegion, 500)} activeOpacity={0.7}>
+            <Ionicons name="locate" size={24} color={currentColors.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
       
       {/* Only keep the legend in the top left */}
       <View style={styles.legendTopLeft}>
-        <BlurView intensity={20} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.legendPanel}>
+        <BlurView intensity={20} tint={currentThemeMode === 'dark' ? 'dark' : 'light'} style={styles.legendPanel}>
           <View style={styles.legendRow}>
-            <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-            <Text style={styles.legendLabel}>Available</Text>
-            <View style={[styles.legendDot, { backgroundColor: colors.accent, marginLeft: 12 }]} />
-            <Text style={styles.legendLabel}>Full</Text>
+            <View style={[styles.legendDot, { backgroundColor: currentColors.status.available }]} />
+            <Text style={[styles.legendLabel, { color: currentThemeMode === 'dark' ? '#fff' : '#333' }]}>Available</Text>
+            <View style={[styles.legendDot, { backgroundColor: currentColors.accent, marginLeft: 12 }]} />
+            <Text style={[styles.legendLabel, { color: currentThemeMode === 'dark' ? '#fff' : '#333' }]}>Full</Text>
           </View>
         </BlurView>
       </View>

@@ -3,6 +3,9 @@ import { View, TouchableOpacity, StyleSheet, Platform, Dimensions, Text } from '
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme/ThemeContext';
+import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,9 +32,27 @@ const routeMap: Record<string, string> = {
 };
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+  const insets = useSafeAreaInsets();
+  const { themeMode, colors } = useTheme();
+  const isDarkMode = themeMode === 'dark';
+  
+  const currentColors = isDarkMode ? colors.dark : colors.light;
+  
+  // Dynamic styles based on theme
+  const backgroundFill = isDarkMode ? 'rgba(40, 40, 80, 0.8)' : 'rgba(255, 255, 255, 0.85)';
+  const backgroundStroke = isDarkMode ? 'rgba(60, 60, 100, 0.6)' : 'rgba(230, 230, 240, 0.8)';
+  const tabIconInactiveColor = isDarkMode ? '#999' : '#777';
+  const tabTextInactiveColor = isDarkMode ? '#aaa' : '#777';
+  const fabBackground = colors.accent;
+  const fabIconColor = '#FFFFFF';
+  const fabBorderColor = isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)';
+  
+  // Adjust bottom padding for safe area
+  const bottomPadding = Math.max(insets.bottom - 10, 0);
+  
   return (
-    <View style={styles.container}>
-      {/* SVG Concave Background */}
+    <View style={[styles.container, { bottom: 10 + bottomPadding }]}>
+      {/* SVG Concave Background with theme-aware styling */}
       <Svg
         width={SCREEN_WIDTH - 32}
         height={TAB_HEIGHT + CURVE_DEPTH}
@@ -51,11 +72,19 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             V${BAR_RADIUS}
             Q0,0 ${BAR_RADIUS},0
             Z`}
-          fill="rgba(255,255,255,0.7)"
-          stroke="#eee"
+          fill={backgroundFill}
+          stroke={backgroundStroke}
           strokeWidth={1}
         />
       </Svg>
+      
+      {/* Add blur effect for frosted glass look */}
+      <BlurView
+        intensity={isDarkMode ? 40 : 60}
+        tint={isDarkMode ? "dark" : "light"}
+        style={styles.blurOverlay}
+      />
+      
       {/* Tab Icons */}
       <View style={styles.tabRow}>
         {icons.map((icon, idx) => {
@@ -69,6 +98,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
           const routeName = routeMap[icon.name];
           const routeIdx = state.routes.findIndex(r => r.name === routeName);
           const isFocused = state.index === routeIdx;
+          
           return (
             <TouchableOpacity
               key={icon.name}
@@ -80,22 +110,50 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
               style={styles.tabButton}
               activeOpacity={0.7}
             >
-              <Ionicons name={(icon.name + (isFocused ? '' : '-outline')) as any} size={28} color={isFocused ? '#FFD600' : '#888'} />
-              <Text style={[styles.label, isFocused && { color: '#FFD600' }]}>{icon.label}</Text>
+              <Ionicons 
+                name={(icon.name + (isFocused ? '' : '-outline')) as any} 
+                size={24} 
+                color={isFocused ? colors.accent : tabIconInactiveColor} 
+              />
+              <Text style={[
+                styles.label, 
+                { 
+                  color: isFocused ? colors.accent : tabTextInactiveColor,
+                  marginTop: 4 
+                }
+              ]}>
+                {icon.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </View>
+      
       {/* Central FAB */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[
+          styles.fab,
+          {
+            backgroundColor: fabBackground,
+            borderColor: fabBorderColor,
+            ...Platform.select({
+              android: {
+                elevation: isDarkMode ? 8 : 4,
+              },
+              ios: {
+                shadowColor: isDarkMode ? '#000' : '#333',
+                shadowOpacity: isDarkMode ? 0.4 : 0.2,
+              }
+            })
+          }
+        ]}
         onPress={() => {
           const routeIdx = state.routes.findIndex(r => r.name === 'Parking');
           if (routeIdx !== -1) navigation.navigate('Parking');
         }}
         activeOpacity={0.85}
       >
-        <Ionicons name="car" size={32} color="#222" />
+        <Ionicons name="car" size={32} color={fabIconColor} />
       </TouchableOpacity>
     </View>
   );
@@ -106,7 +164,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 24,
     height: TAB_HEIGHT + CURVE_DEPTH,
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -128,6 +185,16 @@ const styles = StyleSheet.create({
     borderRadius: BAR_RADIUS,
     overflow: 'hidden',
   },
+  blurOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: TAB_HEIGHT + CURVE_DEPTH,
+    borderRadius: BAR_RADIUS,
+    overflow: 'hidden',
+    borderWidth: 0,
+  },
   tabRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -136,6 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     height: TAB_HEIGHT,
     marginBottom: CURVE_DEPTH / 2,
+    zIndex: 5,
   },
   tabButton: {
     flex: 1,
@@ -145,7 +213,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: '#888',
     marginTop: 2,
     fontWeight: '600',
   },
@@ -156,7 +223,6 @@ const styles = StyleSheet.create({
     width: FAB_SIZE,
     height: FAB_SIZE,
     borderRadius: FAB_SIZE / 2,
-    backgroundColor: '#FFD600',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -164,8 +230,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 8,
     elevation: 8,
-    borderWidth: 2,
-    borderColor: '#fff',
+    borderWidth: 3,
+    zIndex: 10,
   },
 });
 

@@ -8,7 +8,8 @@ import {
   TextInput,
   Image,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -168,7 +169,9 @@ const EditProfileScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <AppLayout>
+      <AppLayout
+        statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
           <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
@@ -180,7 +183,9 @@ const EditProfileScreen: React.FC = () => {
   }
 
   return (
-    <AppLayout>
+    <AppLayout
+      statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+    >
       <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <TouchableOpacity 
           style={[styles.backButton, { backgroundColor: currentColors.surface }]} 
@@ -255,7 +260,6 @@ const EditProfileScreen: React.FC = () => {
                 placeholder={t('enterEmail')}
                 placeholderTextColor={currentColors.text.secondary}
                 keyboardType="email-address"
-                autoCapitalize="none"
                 editable={false}
               />
             </View>
@@ -277,13 +281,21 @@ const EditProfileScreen: React.FC = () => {
           </View>
         </BlurView>
         
-        {/* Delete Account Button */}
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={handleDeleteAccount}
-        >
-          <Text style={styles.deleteButtonText}>{t('deleteAccount')}</Text>
-        </TouchableOpacity>
+        {/* Danger Zone */}
+        <View style={styles.dangerZone}>
+          <Text style={[styles.dangerZoneTitle, { color: currentColors.error }]}>
+            {t('settings')}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.deleteButton, { borderColor: currentColors.error }]}
+            onPress={handleDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={20} color={currentColors.error} />
+            <Text style={[styles.deleteButtonText, { color: currentColors.error }]}>
+              {t('deleteAccount')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </AppLayout>
   );
@@ -394,6 +406,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  dangerZone: {
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    borderRadius: 16,
+    marginVertical: 8,
+  },
+  dangerZoneTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
   },
 });
 

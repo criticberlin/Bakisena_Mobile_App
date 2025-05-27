@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import AppLayout from '../components/layout/AppLayout';
 import { useLanguage } from '../constants/translations/LanguageContext';
 import { firestore } from '../config/firebase';
-import { doc, getDoc, collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, getDocs, where, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ParkingStatistics {
   totalSpaces: number;
@@ -21,6 +22,13 @@ interface ParkingUsageStats {
   averageDuration: number;
 }
 
+interface NotificationItem {
+  id: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
 const MonitorScreen = () => {
   const { themeMode, colors } = useTheme();
   const { t, isRTL } = useLanguage();
@@ -31,8 +39,9 @@ const MonitorScreen = () => {
   // State for parking data
   const [parkingData, setParkingData] = useState<ParkingStatistics | null>(null);
   const [usageStats, setUsageStats] = useState<ParkingUsageStats | null>(null);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Calculate percentages for visualization
   const occupancyPercentage = parkingData ? (parkingData.occupiedSpaces / parkingData.totalSpaces) * 100 : 0;
@@ -53,15 +62,18 @@ const MonitorScreen = () => {
         console.log('Fetched parking statistics:', data);
         setParkingData(data);
       } else {
-        console.log('No parking statistics found');
+        console.log('No parking statistics found, creating default data');
         // Create default data if none exists
-        setParkingData({
+        const defaultStats: ParkingStatistics = {
           totalSpaces: 120,
           occupiedSpaces: 78,
           reservedSpaces: 12,
           availableSpaces: 30,
           lastUpdated: new Date().toISOString()
-        });
+        };
+        
+        await setDoc(statsRef, defaultStats);
+        setParkingData(defaultStats);
       }
       
       // Fetch usage statistics
@@ -73,51 +85,89 @@ const MonitorScreen = () => {
         console.log('Fetched usage statistics:', data);
         setUsageStats(data);
       } else {
+        console.log('No usage statistics found, creating default data');
         // Create default usage stats if none exists
-        setUsageStats({
+        const defaultUsage: ParkingUsageStats = {
           peakHours: '08:00 - 10:00, 17:00 - 19:00',
           occupancyRate: '65%',
           averageDuration: 3.2
-        });
+        };
+        
+        await setDoc(usageRef, defaultUsage);
+        setUsageStats(defaultUsage);
       }
       
       // Fetch notifications
       const notificationsRef = collection(firestore, 'notifications');
-      const q = query(notificationsRef, where('read', '==', false));
+      const q = query(notificationsRef, where('read', '==', false), where('type', '==', 'parking'));
       const notificationsSnapshot = await getDocs(q);
       
-      const notificationMessages = notificationsSnapshot.docs.map(doc => doc.data().message as string);
-      setNotifications(notificationMessages.length > 0 ? notificationMessages : [
-        t('totalSlots'),
-        t('settings')
-      ]);
-      
+      if (notificationsSnapshot.docs.length > 0) {
+        const notificationData = notificationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate() || new Date()
+        })) as NotificationItem[];
+        
+        setNotifications(notificationData);
+      } else {
+        console.log('No notifications found, creating default notifications');
+        // Create sample notifications if none exist
+        const defaultNotifications = [
+          {
+            id: 'notification1',
+            message: t('settings'),
+            timestamp: new Date(),
+            read: false,
+            type: 'parking'
+          },
+          {
+            id: 'notification2',
+            message: t('totalSlots'),
+            timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+            read: false,
+            type: 'parking'
+          }
+        ];
+        
+        // Add default notifications to Firestore
+        for (const notification of defaultNotifications) {
+          const notifRef = doc(collection(firestore, 'notifications'));
+          await setDoc(notifRef, {
+            ...notification,
+            id: notifRef.id,
+            timestamp: serverTimestamp()
+          });
+        }
+        
+        setNotifications(defaultNotifications);
+      }
     } catch (error) {
       console.error('Error fetching parking data:', error);
       Alert.alert(t('error'), String(error));
-      
-      // Set default data in case of error
-      setParkingData({
-        totalSpaces: 120,
-        occupiedSpaces: 78,
-        reservedSpaces: 12,
-        availableSpaces: 30,
-        lastUpdated: new Date().toISOString()
-      });
-      
-      setUsageStats({
-        peakHours: '08:00 - 10:00, 17:00 - 19:00',
-        occupancyRate: '65%',
-        averageDuration: 3.2
-      });
-      
-      setNotifications([
-        t('totalSlots'),
-        t('settings')
-      ]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  // Mark a notification as read
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      const notifRef = doc(firestore, 'notifications', id);
+      await setDoc(notifRef, { read: true }, { merge: true });
+      
+      // Update local state
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchParkingStatistics();
   };
 
   // Set up real-time listener for parking statistics
@@ -155,6 +205,7 @@ const MonitorScreen = () => {
         paddingHorizontal={20}
         paddingVertical={16}
         scrollable={true}
+        statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
@@ -171,6 +222,7 @@ const MonitorScreen = () => {
       paddingHorizontal={20}
       paddingVertical={16}
       scrollable={true}
+      statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
     >
       <Text style={[styles.headerText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('monitor')}</Text>
       
@@ -213,6 +265,21 @@ const MonitorScreen = () => {
               <Text style={[styles.legendText, { color: currentColors.text.primary }]}>{t('availableSlots')} ({parkingData.availableSpaces})</Text>
             </View>
           </View>
+          
+          <TouchableOpacity 
+            style={[styles.refreshButton, { backgroundColor: currentColors.accent + '20' }]}
+            onPress={handleRefresh}
+            disabled={refreshing}
+          >
+            <Ionicons 
+              name="refresh" 
+              size={18} 
+              color={currentColors.accent} 
+            />
+            <Text style={[styles.refreshText, { color: currentColors.accent }]}>
+              {refreshing ? t('loading') : t('connected')}
+            </Text>
+          </TouchableOpacity>
         </View>
         
         <View style={[styles.dataCard, { backgroundColor: currentColors.surface }]}>
@@ -227,18 +294,38 @@ const MonitorScreen = () => {
           </View>
           <View style={[styles.dataRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Text style={[styles.dataLabel, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>{t('duration')}:</Text>
-            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>{usageStats.averageDuration}</Text>
+            <Text style={[styles.dataValue, { color: currentColors.accent, textAlign: isRTL ? 'left' : 'right' }]}>{usageStats.averageDuration} {t('perHour')}</Text>
           </View>
         </View>
         
         <View style={[styles.alertsCard, { backgroundColor: currentColors.surface }]}>
           <Text style={[styles.alertsTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('notifications')}</Text>
-          {notifications.map((notification, index) => (
-            <View key={index} style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
-              <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{notification}</Text>
+          {notifications.length > 0 ? (
+            notifications.map((notification) => (
+              <TouchableOpacity 
+                key={notification.id} 
+                style={[styles.alertItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+                onPress={() => markNotificationAsRead(notification.id)}
+              >
+                <View style={[styles.alertDot, { backgroundColor: colors.status.reserved, marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]} />
+                <View style={styles.alertContent}>
+                  <Text style={[styles.alertText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>
+                    {notification.message}
+                  </Text>
+                  <Text style={[styles.alertTime, { color: currentColors.text.secondary, textAlign: isRTL ? 'right' : 'left' }]}>
+                    {notification.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+                <Ionicons name="close-circle" size={20} color={currentColors.text.secondary} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyNotifications}>
+              <Text style={[styles.emptyText, { color: currentColors.text.secondary }]}>
+                {t('settings')}
+              </Text>
             </View>
-          ))}
+          )}
         </View>
       </View>
     </AppLayout>
@@ -319,6 +406,20 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
   },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  refreshText: {
+    marginLeft: 8,
+    fontWeight: '500',
+    fontSize: 14,
+  },
   dataCard: {
     borderRadius: 16,
     padding: 16,
@@ -370,7 +471,11 @@ const styles = StyleSheet.create({
   alertItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  alertContent: {
+    flex: 1,
   },
   alertDot: {
     width: 8,
@@ -379,7 +484,19 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   alertText: {
-    fontSize: 16,
+    fontSize: 15,
+  },
+  alertTime: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  emptyNotifications: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,

@@ -9,7 +9,8 @@ import {
   Switch,
   Alert,
   I18nManager,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -34,6 +35,9 @@ const AccountScreen: React.FC = () => {
   
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Get current theme colors
+  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
 
   // Load user profile data
   useEffect(() => {
@@ -112,10 +116,12 @@ const AccountScreen: React.FC = () => {
 
   if (loading || authLoading) {
     return (
-      <AppLayout>
+      <AppLayout
+        statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={{ color: colors.text.primary, marginTop: 12 }}>
+          <Text style={{ color: currentColors.text.primary, marginTop: 12 }}>
             {t('loading')}
           </Text>
         </View>
@@ -124,21 +130,23 @@ const AccountScreen: React.FC = () => {
   }
 
   return (
-    <AppLayout>
+    <AppLayout
+      statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+    >
       <ScrollView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: 'transparent' }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>
+          <Text style={[styles.title, { color: currentColors.text.primary }]}>
             {t('account')}
           </Text>
         </View>
         
         {/* Profile Section */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.profileBlur}>
-          <View style={[styles.profileContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.profileContainer, { backgroundColor: currentColors.surface }]}>
             {userData?.profileImage ? (
               <Image 
                 source={{ uri: userData.profileImage }} 
@@ -151,17 +159,17 @@ const AccountScreen: React.FC = () => {
               />
             )}
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: colors.text.primary }]}>
+              <Text style={[styles.profileName, { color: currentColors.text.primary }]}>
                 {userData?.name || userData?.email}
               </Text>
-              <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>
+              <Text style={[styles.profileEmail, { color: currentColors.text.secondary }]}>
                 {userData?.email}
               </Text>
               <TouchableOpacity 
                 style={styles.editButton}
                 onPress={() => navigation.navigate('EditProfile')}
               >
-                <Text style={[styles.editButtonText, { color: colors.accent }]}>
+                <Text style={[styles.editButtonText, { color: currentColors.accent }]}>
                   {t('edit')}
                 </Text>
               </TouchableOpacity>
@@ -169,7 +177,7 @@ const AccountScreen: React.FC = () => {
                 style={[styles.editButton, { marginTop: 12 }]}
                 onPress={handleLogout}
               >
-                <Text style={[styles.editButtonText, { color: colors.error || '#d00' }]}>
+                <Text style={[styles.editButtonText, { color: currentColors.error || '#d00' }]}>
                   {t('logOut')}
                 </Text>
               </TouchableOpacity>
@@ -179,21 +187,21 @@ const AccountScreen: React.FC = () => {
         
         {/* Menu Items */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
-          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.menuContainer, { backgroundColor: currentColors.surface }]}>
             {menuItems.map((item, index) => (
               <TouchableOpacity 
                 key={index}
                 style={[
                   styles.menuItem, 
-                  index < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.divider }
+                  index < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: currentColors.divider }
                 ]}
                 onPress={item.onPress}
               >
-                <Ionicons name={item.icon as any} size={22} color={colors.accent} />
-                <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+                <Ionicons name={item.icon as any} size={22} color={currentColors.accent} />
+                <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                   {item.title}
                 </Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+                <Ionicons name="chevron-forward" size={18} color={currentColors.text.secondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -201,11 +209,11 @@ const AccountScreen: React.FC = () => {
         
         {/* Theme and Language Settings */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.menuBlur}>
-          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.menuContainer, { backgroundColor: currentColors.surface }]}>
             {/* Theme Toggle */}
-            <View style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
-              <Ionicons name="moon-outline" size={22} color={colors.accent} />
-              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+            <View style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: currentColors.divider }]}>
+              <Ionicons name="moon-outline" size={22} color={currentColors.accent} />
+              <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                 {t('darkMode')}
               </Text>
               <Switch
@@ -225,11 +233,11 @@ const AccountScreen: React.FC = () => {
                 navigation.navigate('Settings');
               }}
             >
-              <Ionicons name="language-outline" size={22} color={colors.accent} />
-              <Text style={[styles.menuItemText, { color: colors.text.primary }]}>
+              <Ionicons name="language-outline" size={22} color={currentColors.accent} />
+              <Text style={[styles.menuItemText, { color: currentColors.text.primary }]}>
                 {t('language')}
               </Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={18} color={currentColors.text.secondary} />
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -249,32 +257,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileBlur: {
+    borderRadius: 20,
     overflow: 'hidden',
-    borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   profileContainer: {
     padding: 16,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginRight: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   profileInfo: {
+    marginLeft: 16,
     flex: 1,
   },
   profileName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   profileEmail: {
@@ -286,34 +299,27 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   menuBlur: {
+    borderRadius: 20,
     overflow: 'hidden',
-    borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   menuContainer: {
-    borderRadius: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    borderBottomWidth: 1,
   },
   menuItemText: {
     fontSize: 16,
     marginLeft: 12,
     flex: 1,
-  },
-  languageText: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

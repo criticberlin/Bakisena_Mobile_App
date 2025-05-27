@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/Logo_Only.png",
+      "image": "./assets/images/Logo_With_Border.png",
       "resizeMode": "contain",
       "backgroundColor": "#080d4a"
     },
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Logo_Only.png",
+        "foregroundImage": "./assets/images/Logo_With_Border.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.bakisena.app",
@@ -40,7 +40,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/Logo_Only.png",
+          "image": "./assets/images/Logo_With_Border.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#080d4a"

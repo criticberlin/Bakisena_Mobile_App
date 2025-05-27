@@ -85,9 +85,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const contentOpacity = useSharedValue(0);
   
   // Calculate top padding to ensure content is above the navigation bar
+  // For Android, use the actual StatusBar height plus some extra padding
+  // For iOS, use the safeAreaInsets.top
   const topPadding = Platform.OS === 'android' 
-    ? (StatusBar.currentHeight || 0) * theme.GLOBAL_SCALE + theme.scale(10)
-    : insets.top * theme.GLOBAL_SCALE;
+    ? (StatusBar.currentHeight || 24) + theme.scale(8)
+    : insets.top > 0 ? insets.top : theme.scale(24);
   
   // Calculate bottom padding to accommodate navigation bar (usually 75 points)
   const bottomNavHeight = bottomNavPadding ? 75 : 0;
@@ -123,6 +125,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const autoStatusBarStyle = statusBarStyle || 
     (themeMode === 'dark' ? 'light-content' : 'dark-content');
 
+  // Determine background color for StatusBar
+  const statusBarBackgroundColor = Platform.OS === 'android' 
+    ? (themeMode === 'dark' ? colors.dark.background : colors.light.background) 
+    : 'transparent';
+
   // Header component
   const Header = () => {
     if (customHeader) {
@@ -139,7 +146,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         { 
           backgroundColor: showHeader ? currentColors.surface : 'transparent',
           borderBottomColor: showHeader ? currentColors.divider : 'transparent',
-          paddingTop: topPadding,
+          paddingTop: insets.top,
+          height: 60 + insets.top,
           flexDirection: isRTL ? 'row-reverse' : 'row',
         }
       ]}>
@@ -178,12 +186,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   
   const Content = () => (
     <Animated.View 
-      style={[fadeStyle, { flex: 1 }]}
+      style={[fadeStyle, { flex: 1, backgroundColor: currentColors.background }]}
       entering={animate ? FadeIn.duration(300) : undefined}
     >
       <StatusBar 
         barStyle={autoStatusBarStyle} 
-        backgroundColor="transparent" 
+        backgroundColor={statusBarBackgroundColor} 
         translucent 
       />
       <Header />
@@ -204,14 +212,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   
   // Wrap with scrollview if scrollable is true
   const ContentWithScroll = () => (
-    <RTLWrapper applyTextStyles={true} ignoreArabic={false} style={{ flex: 1 }}>
+    <RTLWrapper applyTextStyles={true} ignoreArabic={false} style={{ flex: 1, backgroundColor: currentColors.background }}>
+      <StatusBar 
+        barStyle={autoStatusBarStyle} 
+        backgroundColor={statusBarBackgroundColor} 
+        translucent 
+      />
       <Header />
       <AnimatedScrollView
-        style={[styles.scrollView, { paddingHorizontal: 0 }, fadeStyle]}
+        style={[styles.scrollView, { paddingHorizontal: 0, backgroundColor: 'transparent' }, fadeStyle]}
         contentContainerStyle={{ 
           flexGrow: 1,
           paddingHorizontal: responsivePadding.paddingHorizontal, 
-          paddingTop: 0, // Header is outside scrollview now
+          paddingTop: padding.paddingTop, 
           paddingBottom: paddingVertical ? theme.scale(paddingVertical) : theme.scale(24) + bottomNavHeight,
         }}
         showsVerticalScrollIndicator={true}
@@ -220,11 +233,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         entering={animate ? FadeIn.duration(300) : undefined}
         keyboardShouldPersistTaps="handled"
       >
-        <StatusBar 
-          barStyle={autoStatusBarStyle} 
-          backgroundColor="transparent" 
-          translucent 
-        />
         <AppThemeWrapper 
           containerType={containerType}
           style={[styles.container, { padding: 0 }, style]}
@@ -240,10 +248,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     return (
       <SafeAreaView style={[
         styles.safeArea, 
-        { flexDirection: isRTL ? 'row-reverse' : 'row' }
+        { backgroundColor: currentColors.background, flexDirection: isRTL ? 'row-reverse' : 'row' }
       ]} edges={['left', 'right']}>
         <KeyboardAvoidingView 
-          style={styles.keyboardAvoid} 
+          style={[styles.keyboardAvoid, { backgroundColor: currentColors.background }]} 
           behavior="padding"
           keyboardVerticalOffset={insets.bottom}
         >
@@ -256,7 +264,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   return (
     <SafeAreaView style={[
       styles.safeArea, 
-      { flexDirection: isRTL ? 'row-reverse' : 'row' }
+      { backgroundColor: currentColors.background, flexDirection: isRTL ? 'row-reverse' : 'row' }
     ]} edges={['left', 'right']}>
       {scrollable ? <ContentWithScroll /> : <Content />}
     </SafeAreaView>
@@ -280,10 +288,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 60,
     width: '100%',
     paddingHorizontal: theme.scale(16),
     borderBottomWidth: 1,
+    zIndex: 10,
   },
   logoContainer: {
     height: 40,

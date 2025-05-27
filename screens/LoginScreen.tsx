@@ -438,11 +438,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: theme.spacing[4],
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 250,
+    height: 250,
   },
   header: {
     alignItems: 'center',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator, Alert, StatusBar, Platform } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import ActionButton from '../components/ActionButton';
@@ -200,6 +200,7 @@ const ConnectedScreen = () => {
         paddingVertical={16}
         scrollable={true}
         bottomNavPadding={true}
+        statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
@@ -217,6 +218,7 @@ const ConnectedScreen = () => {
       paddingVertical={16} 
       scrollable={true}
       bottomNavPadding={true}
+      statusBarStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
     >
       <Text style={[styles.headerText, { color: currentColors.text.primary }]}>{t('connected')}</Text>
       
