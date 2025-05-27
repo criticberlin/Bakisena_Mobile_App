@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "111841920377",
+    "project_id": "bakisena-8a91e",
+    "storage_bucket": "bakisena-8a91e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111841920377:android:26e5355a2260aeee7c9ba8",
+        "android_client_info": {
+          "package_name": "com.bakisena.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIIWViiRz164iMQkaNQ4LoItfcXXTjeXM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

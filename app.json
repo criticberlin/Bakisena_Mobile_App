@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Bakisena",
+    "slug": "Bakisena",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/Logo_Only.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/Logo_Only.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080d4a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bakisena.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/Logo_Only.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.bakisena.app",
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "resize",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/Logo_Only.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/Logo_Only.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#080d4a"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
