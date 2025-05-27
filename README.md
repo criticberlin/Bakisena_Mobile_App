@@ -181,6 +181,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact
 
-Project Maintainer - [Your Name](mailto:your.email@example.com)
+Project Maintainer - [Bakisena Team](Baki0sena@gmail.com)
 
-Project Link: [https://github.com/yourusername/Bakisena_Mobile_App](https://github.com/yourusername/Bakisena_Mobile_App)
+Project Link: [Bakisena Mobile App](https://github.com/criticberlin/Bakisena_Mobile_App)
