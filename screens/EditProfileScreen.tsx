@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -6,10 +6,8 @@ import {
   TouchableOpacity, 
   ScrollView,
   TextInput,
-  Image,
   Alert,
   ActivityIndicator,
-  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,43 +19,54 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
 import { userService } from '../services/user';
 import { User } from '../types';
-import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../config/firebase';
+import { useAuth } from '../components/AuthContext';
 
 type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditProfile'>;
 
-const EditProfileScreen: React.FC = () => {
+const EditProfileScreen: React.FC = React.memo(() => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const { themeMode, colors } = useTheme();
   const { t, language } = useLanguage(); 
+  const { user } = useAuth();
   const isRTL = language === 'ar';
   
   // Get current theme colors
-  const currentColors = themeMode === 'light' ? colors.light : colors.dark;
+  const currentColors = useMemo(() => 
+    themeMode === 'light' ? colors.light : colors.dark
+  , [themeMode, colors]);
 
   // State variables
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [userData, setUserData] = useState<User | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [initialData, setInitialData] = useState<User | null>(null);
+  const [formValues, setFormValues] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  });
   
-  // Load user data
+  // Add validation state
+  const [errors, setErrors] = useState({
+    name: '',
+    phone: '',
+  });
+
+  // Load user data once
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
         const profile = await userService.getCurrentUserProfile();
         
         if (profile) {
-          setUserData(profile);
-          setName(profile.name || '');
-          setEmail(profile.email || '');
-          setPhone(profile.phone || '');
-          setProfileImage(profile.profileImage || null);
+          setInitialData(profile);
+          setFormValues({
+            name: profile.name || '',
+            email: profile.email || '',
+            phone: profile.phone || '',
+          });
         }
       } catch (error) {
         console.error('Error loading profile data:', error);
@@ -68,18 +77,81 @@ const EditProfileScreen: React.FC = () => {
     };
     
     fetchUserData();
+  }, [user]); // Only run when user changes
+
+  // Handle form input changes
+  const handleInputChange = useCallback((field: keyof typeof formValues, value: string) => {
+    setFormValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error for the field being edited
+    if (field === 'name' || field === 'phone') {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
   }, []);
 
+  // Validate phone number format
+  const validatePhone = useCallback((phoneNumber: string) => {
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    return phoneRegex.test(phoneNumber);
+  }, []);
+
+  // Validate form
+  const validateForm = useCallback(() => {
+    const newErrors = {
+      name: '',
+      phone: '',
+    };
+
+    if (!formValues.name.trim()) {
+      newErrors.name = t('nameRequired');
+    }
+
+    if (formValues.phone && !validatePhone(formValues.phone)) {
+      newErrors.phone = t('invalidPhone');
+    }
+
+    setErrors(newErrors);
+    return !newErrors.name && !newErrors.phone;
+  }, [formValues, validatePhone, t]);
+
+  // Check if form has changes
+  const hasChanges = useMemo(() => {
+    if (!initialData) return false;
+    
+    return (
+      formValues.name !== (initialData.name || '') ||
+      formValues.phone !== (initialData.phone || '')
+    );
+  }, [formValues, initialData]);
+
   const handleSave = async () => {
+    if (!hasChanges) {
+      navigation.goBack();
+      return;
+    }
+
+    if (!validateForm()) {
+      Alert.alert(t('error'), t('pleaseFixErrors'));
+      return;
+    }
+
     try {
       setSaving(true);
       
-      // Prepare updated profile data
-      const updatedProfile: Partial<User> = {
-        name,
-        phone,
-        profileImage
-      };
+      // Only include changed fields
+      const updatedProfile: Partial<User> = {};
+      if (formValues.name !== initialData?.name) {
+        updatedProfile.name = formValues.name.trim();
+      }
+      if (formValues.phone !== initialData?.phone) {
+        updatedProfile.phone = formValues.phone.trim();
+      }
       
       // Update user profile in Firestore
       await userService.updateUserProfile(updatedProfile);
@@ -97,51 +169,6 @@ const EditProfileScreen: React.FC = () => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(t('error'), t('permissionRequired'));
-        return;
-      }
-      
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-      
-      if (!result.canceled && result.assets && result.assets[0]?.uri) {
-        setLoading(true);
-        
-        // Upload image to Firebase Storage
-        const uri = result.assets[0].uri;
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        
-        // Create a unique filename
-        const filename = `profile_${userData?.id}_${new Date().getTime()}`;
-        const storageRef = ref(storage, `profile_images/${filename}`);
-        
-        // Upload and get download URL
-        await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(storageRef);
-        
-        // Update state with new image URL
-        setProfileImage(downloadURL);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert(t('error'), t('errorUploadingImage'));
-      setLoading(false);
-    }
-  };
-  
   const handleDeleteAccount = async () => {
     Alert.alert(
       t('deleteAccount'),
@@ -214,69 +241,76 @@ const EditProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Image */}
-        <View style={styles.imageSection}>
-          <TouchableOpacity 
-            style={styles.profileImageContainer}
-            onPress={pickImage}
-          >
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            ) : (
-              <Image source={require('../assets/images/avatar-placeholder.png')} style={styles.profileImage} />
-            )}
-            <View style={[styles.editImageButton, { backgroundColor: currentColors.accent }]}>
-              <Ionicons name="camera" size={18} color="#FFF" />
-            </View>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Form Fields */}
         <BlurView intensity={10} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.formBlur}>
           <View style={[styles.formContainer, { backgroundColor: currentColors.surface }]}>
-            {/* Name Field */}
-            <View style={[styles.inputGroup, { borderBottomColor: currentColors.divider }]}>
-              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
-                {t('fullName')}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: currentColors.text.primary }]}>
+                {t('fullName')} *
               </Text>
               <TextInput
-                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={name}
-                onChangeText={setName}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: currentColors.surface,
+                    color: currentColors.text.primary,
+                    borderColor: errors.name ? colors.error : currentColors.divider
+                  }
+                ]}
+                value={formValues.name}
+                onChangeText={(value) => handleInputChange('name', value)}
                 placeholder={t('enterName')}
                 placeholderTextColor={currentColors.text.secondary}
               />
+              {errors.name ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {errors.name}
+                </Text>
+              ) : null}
             </View>
             
-            {/* Email Field */}
-            <View style={[styles.inputGroup, { borderBottomColor: currentColors.divider }]}>
-              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: currentColors.text.primary }]}>
                 {t('email')}
               </Text>
               <TextInput
-                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={email}
-                onChangeText={setEmail}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: currentColors.surface,
+                    color: currentColors.text.primary
+                  }
+                ]}
+                value={formValues.email}
+                editable={false}
                 placeholder={t('enterEmail')}
                 placeholderTextColor={currentColors.text.secondary}
-                keyboardType="email-address"
-                editable={false}
               />
             </View>
             
-            {/* Phone Field */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: currentColors.text.secondary }]}>
-                {t('phoneNumber')}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: currentColors.text.primary }]}>
+                {t('phoneNumber')} *
               </Text>
               <TextInput
-                style={[styles.input, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}
-                value={phone}
-                onChangeText={setPhone}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: currentColors.surface,
+                    color: currentColors.text.primary,
+                    borderColor: errors.phone ? colors.error : currentColors.divider
+                  }
+                ]}
+                value={formValues.phone}
+                onChangeText={(value) => handleInputChange('phone', value)}
                 placeholder={t('enterPhone')}
                 placeholderTextColor={currentColors.text.secondary}
                 keyboardType="phone-pad"
               />
+              {errors.phone ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {errors.phone}
+                </Text>
+              ) : null}
             </View>
           </View>
         </BlurView>
@@ -297,9 +331,18 @@ const EditProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {saving && (
+        <BlurView intensity={100} style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: currentColors.text.primary }]}>
+            {t('saving')}
+          </Text>
+        </BlurView>
+      )}
     </AppLayout>
   );
-};
+});
 
 const styles = StyleSheet.create({
   header: {
@@ -340,31 +383,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: 16,
   },
-  imageSection: {
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  profileImageContainer: {
-    position: 'relative',
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  editImageButton: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#2563EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
   formBlur: {
     overflow: 'hidden',
     borderRadius: 16,
@@ -374,11 +392,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
-  inputGroup: {
+  inputContainer: {
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  inputLabel: {
+  label: {
     fontSize: 14,
     marginBottom: 8,
   },
@@ -387,14 +405,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   deleteButton: {
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#EF4444',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 8,
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
   },
   deleteButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -410,7 +429,6 @@ const styles = StyleSheet.create({
   dangerZone: {
     padding: 16,
     borderWidth: 2,
-    borderColor: '#EF4444',
     borderRadius: 16,
     marginVertical: 8,
   },
@@ -418,6 +436,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
 });
 

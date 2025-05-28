@@ -2,9 +2,128 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // During development, allow all operations
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isUserAuthenticated(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Check if query contains a userId filter matching the current user
+    function hasValidUserIdFilter() {
+      let userIdFilters = request.query.filters.where(f, f.field == 'userId' && f.op == '==' && f.value == request.auth.uid);
+      return request.query.filters.size() > 0 && userIdFilters.size() > 0;
+    }
+    
+    // Validate user data
+    function isValidUserData(data) {
+      return data.size() <= 7 && // Limit fields
+        (!('email' in data) || data.email is string) &&
+        (!('name' in data) || data.name is string) &&
+        (!('phone' in data) || data.phone is string) &&
+        (!('isAdmin' in data) || data.isAdmin is bool) &&
+        (!('deleted' in data) || data.deleted is bool) &&
+        (!('id' in data) || data.id is string);
+    }
+
+    // Validate booking data
+    function isValidBookingData(data) {
+      return data.size() <= 12 && // Increased limit to include timestamps
+        'userId' in data &&
+        data.userId is string &&
+        'status' in data &&
+        data.status in ['ACTIVE', 'COMPLETED', 'CANCELLED'] &&
+        'paymentStatus' in data &&
+        data.paymentStatus in ['PENDING', 'PAID', 'REFUNDED'] &&
+        (!('slotId' in data) || data.slotId is string) &&
+        (!('locationId' in data) || data.locationId is string) &&
+        (!('vehicleId' in data) || data.vehicleId is string) &&
+        (!('startTime' in data) || data.startTime is timestamp) &&
+        (!('endTime' in data) || data.endTime is timestamp) &&
+        (!('totalCost' in data) || data.totalCost is number) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    // User profiles
+    match /users/{userId} {
+      // Allow read if:
+      // 1. User is reading their own profile
+      // 2. User is an admin
+      allow read: if isUserAuthenticated(userId) || isAdmin();
+      
+      // Allow create if:
+      // 1. User is creating their own profile
+      // 2. Data is valid
+      // 3. userId matches auth uid
+      allow create: if isUserAuthenticated(userId) &&
+        isValidUserData(request.resource.data) &&
+        request.resource.data.id == userId;
+      
+      // Allow update if:
+      // 1. User is updating their own profile
+      // 2. Data is valid
+      // 3. Not changing isAdmin status
+      // 4. Not changing user ID
+      allow update: if isUserAuthenticated(userId) &&
+        isValidUserData(request.resource.data) &&
+        ((!('isAdmin' in request.resource.data) && !('isAdmin' in resource.data)) ||
+        request.resource.data.isAdmin == resource.data.isAdmin) &&
+        (!('id' in request.resource.data) || request.resource.data.id == userId);
+      
+      // Allow delete if:
+      // 1. User is deleting their own profile
+      // 2. User is an admin
+      allow delete: if isUserAuthenticated(userId) || isAdmin();
+    }
+
+    // Bookings
+    match /bookings/{bookingId} {
+      // Allow read operations
+      allow read: if isAuthenticated() && (
+        // User can read their own bookings
+        resource.data.userId == request.auth.uid ||
+        // Admins can read all bookings
+        isAdmin()
+      );
+
+      // Allow list operations with proper query restrictions
+      allow list: if isAuthenticated() && (
+        // Admins can list all bookings
+        isAdmin() ||
+        // User can list their own bookings (userId filter must be present)
+        hasValidUserIdFilter()
+      );
+
+      // Allow create operations
+      allow create: if isAuthenticated() &&
+        isValidBookingData(request.resource.data) &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Allow update operations
+      allow update: if isAuthenticated() &&
+        isValidBookingData(request.resource.data) &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        (isAdmin() || resource.data.status != 'COMPLETED');
+
+      // Allow delete operations
+      allow delete: if isAdmin();
+    }
+
+    // Storage rules should be added in storage.rules
+    
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 } 

@@ -219,4 +219,11 @@ export const en = {
   
   // General messages
   notImplemented: 'This feature is not yet implemented',
+  
+  // Profile validation
+  nameRequired: 'Name is required',
+  invalidPhone: 'Please enter a valid phone number',
+  pleaseFixErrors: 'Please fix the errors before saving',
+  imageTooLarge: 'Image size must be less than 5MB',
+  saving: 'Saving...',
 }; 

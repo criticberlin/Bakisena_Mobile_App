@@ -1,4 +1,4 @@
-package com.yourcompany.bakisena
+package com.bakisena.app
 
 import android.app.Application
 import android.content.res.Configuration

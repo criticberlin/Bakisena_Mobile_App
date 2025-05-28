@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { 
   StyleSheet, 
   ViewStyle, 
@@ -78,32 +78,41 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const { isRTL } = useLanguage();
   const navigation = useNavigation();
   
-  // Get current theme colors
-  const currentColors = themeMode === 'dark' ? colors.dark : colors.light;
+  // Get current theme colors - memoized
+  const currentColors = useMemo(() => 
+    themeMode === 'dark' ? colors.dark : colors.light
+  , [themeMode, colors]);
   
   // Animation values
   const contentOpacity = useSharedValue(0);
   
-  // Calculate top padding to ensure content is above the navigation bar
-  // For Android, use the actual StatusBar height plus some extra padding
-  // For iOS, use the safeAreaInsets.top
-  const topPadding = Platform.OS === 'android' 
-    ? (StatusBar.currentHeight || 24) + theme.scale(8)
-    : insets.top > 0 ? insets.top : theme.scale(24);
-  
-  // Calculate bottom padding to accommodate navigation bar (usually 75 points)
-  const bottomNavHeight = bottomNavPadding ? 75 : 0;
-  
-  const padding = {
-    paddingHorizontal: theme.scale(paddingHorizontal),
-    paddingTop: paddingVertical ? theme.scale(paddingVertical) : topPadding,
-    paddingBottom: paddingVertical ? theme.scale(paddingVertical) : 0,
-  };
-  
-  // Responsive padding adjustments for tablets
-  const responsivePadding = {
-    paddingHorizontal: theme.size.isTablet ? theme.scale(24) : theme.scale(paddingHorizontal),
-  };
+  // Calculate layout values - memoized
+  const layoutValues = useMemo(() => ({
+    topPadding: Platform.OS === 'android' 
+      ? (StatusBar.currentHeight || 24) + theme.scale(8)
+      : insets.top > 0 ? insets.top : theme.scale(24),
+    bottomNavHeight: bottomNavPadding ? 75 : 0,
+    padding: {
+      paddingHorizontal: theme.scale(paddingHorizontal),
+      paddingTop: paddingVertical ? theme.scale(paddingVertical) : 0,
+      paddingBottom: paddingVertical ? theme.scale(paddingVertical) : 0,
+    },
+    responsivePadding: {
+      paddingHorizontal: theme.size.isTablet ? theme.scale(24) : theme.scale(paddingHorizontal),
+    },
+    statusBarStyle: statusBarStyle || (themeMode === 'dark' ? 'light-content' : 'dark-content'),
+    statusBarBackgroundColor: Platform.OS === 'android' 
+      ? (themeMode === 'dark' ? colors.dark.background : colors.light.background) 
+      : 'transparent'
+  }), [
+    insets.top,
+    paddingHorizontal,
+    paddingVertical,
+    statusBarStyle,
+    themeMode,
+    colors,
+    bottomNavPadding
+  ]);
   
   // Set up animations
   useEffect(() => {
@@ -114,24 +123,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     } else {
       contentOpacity.value = 1;
     }
-  }, []);
+  }, [animate]);
   
   // Animated styles
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
   }));
-  
-  // Auto-detect status bar style based on theme if not provided
-  const autoStatusBarStyle = statusBarStyle || 
-    (themeMode === 'dark' ? 'light-content' : 'dark-content');
 
-  // Determine background color for StatusBar
-  const statusBarBackgroundColor = Platform.OS === 'android' 
-    ? (themeMode === 'dark' ? colors.dark.background : colors.light.background) 
-    : 'transparent';
-
-  // Header component
-  const Header = () => {
+  // Header component - memoized
+  const Header = useMemo(() => {
     if (customHeader) {
       return customHeader;
     }
@@ -182,50 +182,69 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         </View>
       </View>
     );
-  };
-  
-  const Content = () => (
+  }, [
+    customHeader,
+    showHeader,
+    showLogo,
+    showProfileButton,
+    currentColors,
+    insets.top,
+    isRTL,
+    headerTitle,
+    onProfilePress,
+    colors.accent
+  ]);
+
+  // Content component - memoized
+  const Content = useMemo(() => () => (
     <Animated.View 
       style={[fadeStyle, { flex: 1, backgroundColor: currentColors.background }]}
       entering={animate ? FadeIn.duration(300) : undefined}
     >
       <StatusBar 
-        barStyle={autoStatusBarStyle} 
-        backgroundColor={statusBarBackgroundColor} 
+        barStyle={layoutValues.statusBarStyle} 
+        backgroundColor={layoutValues.statusBarBackgroundColor} 
         translucent 
       />
-      <Header />
+      {Header}
       <AppThemeWrapper 
         containerType={containerType}
         style={[
-          styles.container, 
-          padding, 
-          responsivePadding, 
-          bottomNavPadding && { marginBottom: bottomNavHeight }, 
+          layoutValues.padding,
+          layoutValues.responsivePadding,
           style
         ]}
       >
         {children}
       </AppThemeWrapper>
     </Animated.View>
-  );
+  ), [
+    fadeStyle,
+    currentColors,
+    animate,
+    layoutValues,
+    Header,
+    containerType,
+    style,
+    children
+  ]);
   
   // Wrap with scrollview if scrollable is true
   const ContentWithScroll = () => (
     <RTLWrapper applyTextStyles={true} ignoreArabic={false} style={{ flex: 1, backgroundColor: currentColors.background }}>
       <StatusBar 
-        barStyle={autoStatusBarStyle} 
-        backgroundColor={statusBarBackgroundColor} 
+        barStyle={layoutValues.statusBarStyle} 
+        backgroundColor={layoutValues.statusBarBackgroundColor} 
         translucent 
       />
-      <Header />
+      {Header}
       <AnimatedScrollView
         style={[styles.scrollView, { paddingHorizontal: 0, backgroundColor: 'transparent' }, fadeStyle]}
         contentContainerStyle={{ 
           flexGrow: 1,
-          paddingHorizontal: responsivePadding.paddingHorizontal, 
-          paddingTop: padding.paddingTop, 
-          paddingBottom: paddingVertical ? theme.scale(paddingVertical) : theme.scale(24) + bottomNavHeight,
+          paddingHorizontal: layoutValues.responsivePadding.paddingHorizontal, 
+          paddingTop: layoutValues.padding.paddingTop, 
+          paddingBottom: paddingVertical ? theme.scale(paddingVertical) : theme.scale(24) + layoutValues.bottomNavHeight,
         }}
         showsVerticalScrollIndicator={true}
         overScrollMode="always"
