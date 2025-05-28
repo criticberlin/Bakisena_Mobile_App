@@ -68,7 +68,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Translation function
   const t = (key: TranslationKey, values?: Record<string, string | number>): string => {
-    let text = translations[language][key] || translations.en[key] || key;
+    let text = (translations[language] as Record<string, string>)[key] || 
+               (translations.en as Record<string, string>)[key] || 
+               key;
     
     if (values) {
       Object.entries(values).forEach(([valueKey, value]) => {

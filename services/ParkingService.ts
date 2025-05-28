@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, getDoc, updateDoc, query, where, orderBy, Timestamp, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { firestore as db } from '../config/firebase';
 import { ParkingSlot, ParkingSection, ParkingLevel, ParkingLocation } from '../types';
+import { limit } from 'firebase/firestore';
 
 class ParkingService {
   private readonly SLOTS_COLLECTION = 'parking_slots';
@@ -316,6 +317,104 @@ class ParkingService {
       throw error;
     }
   }
+
+  // Get nearby parking locations based on coordinates
+  async getNearbyLocations(
+    latitude: number,
+    longitude: number,
+    radiusInKm = 5,
+    count = 10
+  ): Promise<ParkingLocation[]> {
+    try {
+      const locations = await this.getParkingLocations();
+      
+      // Sort by a rough approximation of distance
+      const sortedLocations = locations.sort((a, b) => {
+        const distA = this.calculateDistance(
+          latitude, 
+          longitude, 
+          a.coordinates.latitude, 
+          a.coordinates.longitude
+        );
+        
+        const distB = this.calculateDistance(
+          latitude, 
+          longitude, 
+          b.coordinates.latitude, 
+          b.coordinates.longitude
+        );
+        
+        return distA - distB;
+      });
+      
+      return sortedLocations.slice(0, count);
+    } catch (error) {
+      console.error('Failed to get nearby parking locations', error);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate rough distance between two coordinates
+   * This is a simplified version using the Haversine formula
+   */
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Distance in km
+    return distance;
+  }
+
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+
+  /**
+   * Get available locations
+   */
+  async getAvailableLocations(count = 10): Promise<ParkingLocation[]> {
+    try {
+      const locations = await this.getParkingLocations();
+      return locations
+        .filter(location => location.availableSlots > 0)
+        .sort((a, b) => b.availableSlots - a.availableSlots)
+        .slice(0, count);
+    } catch (error) {
+      console.error('Failed to get available parking locations', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update available slots for a parking location
+   */
+  async updateAvailableSlots(
+    locationId: string,
+    availableSlots: number
+  ): Promise<boolean> {
+    try {
+      const locationRef = doc(db, this.LOCATIONS_COLLECTION, locationId);
+      await updateDoc(locationRef, { availableSlots });
+      return true;
+    } catch (error) {
+      console.error('Failed to update available slots', error);
+      return false;
+    }
+  }
 }
 
+/**
+ * Singleton instance of ParkingService
+ */
 export const parkingService = new ParkingService(); 

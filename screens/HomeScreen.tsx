@@ -53,6 +53,7 @@ const HomeScreen: React.FC = () => {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
   const [featuredPricingPlan, setFeaturedPricingPlan] = useState<PricingPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -66,6 +67,7 @@ const HomeScreen: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Fetch parking locations
         const locationsRef = collection(firestore, 'parkingLocations');
@@ -94,62 +96,10 @@ const HomeScreen: React.FC = () => {
         // Get the featured pricing plan
         if (plans.length > 0) {
           setFeaturedPricingPlan(plans[0]);
-        } else {
-          // Fallback to default plan if none exists
-          setFeaturedPricingPlan({
-            id: 'default',
-            name: 'Standard',
-            description: 'Pay as you go',
-            locationId: 'all',
-            hourlyRate: 5,
-            dailyRate: 40,
-            monthlyRate: 600,
-            features: ['Flexible entry/exit', 'No commitment'],
-            isPopular: false
-          });
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        
-        // Set default data in case of error
-        setParkingLocations([
-          {
-            id: '1',
-            name: 'Downtown Parking',
-            address: '6PM4+7C, Cairo Governorate Desert',
-            images: [],
-            priceRange: { min: 5, max: 10 },
-            availableSlots: 25,
-            totalSlots: 50,
-            coordinates: { latitude: 30.233440346065482, longitude: 31.705995798063242 },
-            operatingHours: { open: '06:00', close: '22:00' },
-            amenities: ['CCTV', 'Security Guard']
-          },
-          {
-            id: '2',
-            name: 'Mall Parking',
-            address: 'Mall of Egypt, 6th of October City',
-            images: [],
-            priceRange: { min: 10, max: 15 },
-            availableSlots: 120,
-            totalSlots: 300,
-            coordinates: { latitude: 29.9626, longitude: 31.0891 },
-            operatingHours: { open: '08:00', close: '23:00' },
-            amenities: ['CCTV', 'Security Guard']
-          }
-        ]);
-        
-        setFeaturedPricingPlan({
-          id: 'default',
-          name: 'Standard',
-          description: 'Pay as you go',
-          locationId: 'all',
-          hourlyRate: 5,
-          dailyRate: 40,
-          monthlyRate: 600,
-          features: ['Flexible entry/exit', 'No commitment'],
-          isPopular: false
-        });
+        setError('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -201,6 +151,31 @@ const HomeScreen: React.FC = () => {
           ]}>
             {t('loading')}
           </Text>
+        </View>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <View style={[
+          styles.loadingContainer, 
+          { backgroundColor: colors.background }
+        ]}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+          <Text style={[
+            styles.loadingText, 
+            { color: colors.text.primary, marginTop: 16 }
+          ]}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.accent }]}
+            onPress={() => navigation.replace('Home')}
+          >
+            <Text style={{ color: 'white' }}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       </AppLayout>
     );
@@ -705,6 +680,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
 });
 
