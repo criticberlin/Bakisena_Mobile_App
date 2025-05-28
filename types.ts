@@ -101,15 +101,16 @@ export interface ParkingSlot {
 export interface PricingPlan {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   locationId: string;
   hourlyRate: number;
   dailyRate: number;
   weeklyRate?: number;
   monthlyRate: number;
   discountPercent?: number;
-  features: string[];
+  features?: string[];
   isPopular?: boolean;
+  isActive?: boolean;
 }
 
 // Navigation Types

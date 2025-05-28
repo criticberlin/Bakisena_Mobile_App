@@ -3,10 +3,10 @@ import theme from '../../theme/theme';
 
 // Define types for props and parking spot data
 export type ParkingSpot = {
-  id: string;
+  id: number;
   latitude: number;
   longitude: number;
-  status: 'available' | 'reserved' | 'occupied' | 'maintenance';
+  status: 'available' | 'reserved';
   name?: string;
   floor?: string; // Optional floor information
   price?: number; // Optional price information
@@ -41,7 +41,7 @@ export type ParkingMapProps = {
 // Common parking spots data - Cairo parking spots
 export const cairoParkingSpots: ParkingSpot[] = [
   {
-    id: '1',
+    id: 1,
     latitude: 30.0444,
     longitude: 31.2357,
     status: 'available',
@@ -51,7 +51,7 @@ export const cairoParkingSpots: ParkingSpot[] = [
     distance: 0.3
   },
   {
-    id: '2',
+    id: 2,
     latitude: 30.0484,
     longitude: 31.2387,
     status: 'reserved',
@@ -61,7 +61,7 @@ export const cairoParkingSpots: ParkingSpot[] = [
     distance: 0.5
   },
   {
-    id: '3',
+    id: 3,
     latitude: 30.0404,
     longitude: 31.2327,
     status: 'available',
@@ -71,7 +71,7 @@ export const cairoParkingSpots: ParkingSpot[] = [
     distance: 0.7
   },
   {
-    id: '4',
+    id: 4,
     latitude: 30.0464,
     longitude: 31.2307,
     status: 'available',
@@ -81,7 +81,7 @@ export const cairoParkingSpots: ParkingSpot[] = [
     distance: 0.4
   },
   {
-    id: '5',
+    id: 5,
     latitude: 30.0424,
     longitude: 31.2417,
     status: 'reserved',

@@ -10,13 +10,12 @@ import {
   ScrollView,
   Image
 } from 'react-native';
-import MapView, { Marker, Callout, Region } from 'react-native-maps';
+import MapView, { Marker, Callout } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { ParkingMapProps, cairoParkingSpots, ParkingSpot } from './constants';
 import { useTheme } from '../../theme/ThemeContext';
-import MapWrapper from './MapWrapper';
 
 // Map style to make it look modern and dark
 const darkMapStyle = [
@@ -384,115 +383,6 @@ const defaultExitTime = '01:00 PM';
 const MARKER_SIZE = 27; // 36 * 0.75
 const BADGE_SIZE = 16;
 
-// Parking spot pin component - custom UI for the marker
-const ParkingSpotPin = ({ status }: { status: string }) => {
-  // Get theme context for colors
-  const { colors } = useTheme();
-  
-  const getStatusColor = (status: string) => {
-    if (!status) return '#4CAF50'; // Default to green if status is undefined
-    
-    switch(status) {
-      case 'available':
-        return colors?.status?.available || '#4CAF50'; // Green fallback
-      case 'reserved':
-        return colors?.status?.reserved || '#FFA000'; // Amber fallback  
-      case 'occupied':
-        return colors?.error || '#F44336'; // Red fallback
-      default:
-        return '#4CAF50'; // Default green
-    }
-  };
-
-  return (
-    <View style={[
-      styles.markerContainer,
-      {
-        width: MARKER_SIZE,
-        height: MARKER_SIZE,
-        borderRadius: MARKER_SIZE / 2,
-        backgroundColor: getStatusColor(status),
-        borderColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-    ]}>
-      <Text style={styles.markerText}>P</Text>
-    </View>
-  );
-};
-
-// Spot callout component - custom info window
-const SpotCallout = ({ spot, themeMode, colors }: { 
-  spot: ParkingSpot, 
-  themeMode: string, 
-  colors: any 
-}) => {
-  return (
-    <View style={[
-      styles.calloutContainer, 
-      { 
-        backgroundColor: themeMode === 'dark' ? '#333' : '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8 
-      }
-    ]}>
-      <Text style={[
-        styles.calloutTitle,
-        { color: themeMode === 'dark' ? '#fff' : '#333' }
-      ]}>{spot.name || `Spot ${spot.id}`}</Text>
-      
-      <View style={styles.calloutStatusContainer}>
-        <View style={[
-          styles.calloutStatusIndicator, 
-          { backgroundColor: spot.status === 'available' ? colors.status.available : colors.status.reserved }
-        ]} />
-        <Text style={[
-          styles.calloutStatus,
-          { color: themeMode === 'dark' ? '#fff' : '#333' }
-        ]}>
-          {spot.status === 'available' ? 'Available' : 'Reserved'}
-        </Text>
-      </View>
-      
-      <View style={styles.calloutDetailsGrid}>
-        {spot.floor && (
-          <View style={styles.calloutDetailItem}>
-            <Ionicons name="layers-outline" size={16} color={themeMode === 'dark' ? '#ccc' : '#666'} />
-            <Text style={[
-              styles.calloutDetail,
-              { color: themeMode === 'dark' ? '#ccc' : '#666' }
-            ]}>Floor {spot.floor}</Text>
-          </View>
-        )}
-        
-        {spot.price && (
-          <View style={styles.calloutDetailItem}>
-            <Ionicons name="cash-outline" size={16} color={themeMode === 'dark' ? '#ccc' : '#666'} />
-            <Text style={[
-              styles.calloutDetail,
-              { color: themeMode === 'dark' ? '#ccc' : '#666' }
-            ]}>${spot.price}/hr</Text>
-          </View>
-        )}
-        
-        {spot.distance && (
-          <View style={styles.calloutDetailItem}>
-            <Ionicons name="location-outline" size={16} color={themeMode === 'dark' ? '#ccc' : '#666'} />
-            <Text style={[
-              styles.calloutDetail,
-              { color: themeMode === 'dark' ? '#ccc' : '#666' }
-            ]}>{spot.distance}</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-};
-
 // Native implementation of ParkingMap
 const ParkingMap: React.FC<ParkingMapProps> = ({
   initialRegion = defaultRegion,
@@ -513,6 +403,12 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
   const themeContext = useTheme();
   const currentThemeMode = themeMode || themeContext.themeMode;
   const currentColors = colors || (currentThemeMode === 'dark' ? themeContext.colors.dark : themeContext.colors.light);
+  
+  // Ensure status colors exist with fallbacks
+  const statusColors = {
+    available: currentColors?.status?.available || '#00C853',
+    reserved: currentColors?.status?.reserved || '#FF9D00'
+  };
   
   // Use the appropriate map style based on theme
   const mapStyle = currentThemeMode === 'dark' ? darkMapStyle : lightMapStyle;
@@ -600,51 +496,158 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
     <View style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Main Content - Parking Map */}
       <View style={styles.mapContainer}>
-        <MapWrapper
-          initialRegion={initialRegion}
-          style={styles.map}
-          showFallback={false}
-        >
-          {/* Rest of the existing map content */}
-          {/* Add markers for parking spots */}
-          {parkingSpots.map((spot) => (
-            <Marker
-              key={spot.id}
-              coordinate={{
-                latitude: spot.latitude,
-                longitude: spot.longitude,
-              }}
-              onPress={() => handleSpotPress(spot)}
-            >
-              {/* Custom marker UI */}
-              <ParkingSpotPin status={spot.status} />
-              
-              {/* Callout (info window) */}
-              <Callout tooltip onPress={() => spot.status === 'available' && handleReserveSpot(spot)}>
-                <SpotCallout 
-                  spot={spot} 
-                  themeMode={themeMode} 
-                  colors={currentColors}
-                />
-              </Callout>
-            </Marker>
-          ))}
-          
-          {/* User location marker */}
-          {userLocation && (
-            <Marker
-              coordinate={{
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude,
-              }}
-            >
-              <View style={styles.userLocationMarker}>
-                <View style={styles.userLocationDot} />
-                <View style={styles.userLocationRing} />
+        {Platform.OS !== 'web' && (
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={initialRegion}
+            // Explicitly use the default provider by not specifying a provider
+            customMapStyle={mapStyle}
+            showsUserLocation
+            showsMyLocationButton={false}
+            showsCompass={false}
+            showsScale={false}
+            showsBuildings={true}
+            showsIndoors={false}
+            loadingEnabled={true}
+            onMapReady={() => setMapReady(true)}
+            rotateEnabled={true}
+            pitchEnabled={true}
+          >
+            {parkingSpots.map((spot) => (
+              <Marker
+                key={spot.id}
+                coordinate={{ latitude: spot.latitude, longitude: spot.longitude }}
+                onPress={() => handleSpotPress(spot)}
+                style={{ width: 44, height: 44 }} // ensure touch area
+              >
+                <View style={[
+                  styles.markerContainer,
+                  {
+                    width: MARKER_SIZE,
+                    height: MARKER_SIZE,
+                    borderRadius: MARKER_SIZE / 2,
+                    backgroundColor: spot.status === 'available' ? statusColors.available : statusColors.reserved,
+                    borderColor: currentColors.secondary,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                ]}>
+                  <Text style={styles.markerText}>P</Text>
+                  {spot.status === 'available' && (
+                    <View style={[
+                      styles.badge,
+                      {
+                        position: 'absolute',
+                        top: -BADGE_SIZE / 2 + 4,
+                        right: -BADGE_SIZE / 2 + 4,
+                        width: BADGE_SIZE,
+                        height: BADGE_SIZE,
+                        borderRadius: BADGE_SIZE / 2,
+                        backgroundColor: '#fff',
+                        borderWidth: 1,
+                        borderColor: statusColors.available,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      },
+                    ]}>
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: statusColors.available }}>{spot.availableSpots ?? 1}</Text>
+                    </View>
+                  )}
+                </View>
+                <Callout tooltip>
+                  <View style={[
+                    styles.calloutContainer, 
+                    { 
+                      backgroundColor: currentColors.surface,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      elevation: 8 
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.calloutTitle,
+                      { color: currentColors.text.primary }
+                    ]}>{spot.name || `Spot ${spot.id}`}</Text>
+                    
+                    <View style={styles.calloutStatusContainer}>
+                      <View style={[
+                        styles.calloutStatusIndicator, 
+                        { backgroundColor: spot.status === 'available' ? statusColors.available : currentColors.accent }
+                      ]} />
+                      <Text style={styles.calloutStatus}>
+                        {spot.status === 'available' ? 'Available' : 'Reserved'}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.calloutDetailsGrid}>
+                      {spot.floor && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="layers-outline" size={16} color={currentColors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: currentColors.text.secondary }
+                          ]}>Floor {spot.floor}</Text>
+                        </View>
+                      )}
+                      
+                      {spot.price && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="cash-outline" size={16} color={currentColors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: currentColors.text.secondary }
+                          ]}>${spot.price}/hr</Text>
+                        </View>
+                      )}
+                      
+                      {spot.distance && (
+                        <View style={styles.calloutDetailItem}>
+                          <Ionicons name="location-outline" size={16} color={currentColors.text.secondary} />
+                          <Text style={[
+                            styles.calloutDetail,
+                            { color: currentColors.text.secondary }
+                          ]}>{spot.distance} km</Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <TouchableOpacity
+                      style={[
+                        styles.reserveButton,
+                        { 
+                          backgroundColor: spot.status === 'available' ? currentColors.accent : 'rgba(255, 255, 255, 0.2)',
+                          borderWidth: 1,
+                          borderColor: spot.status === 'available' ? 'transparent' : currentColors.divider
+                        }
+                      ]}
+                      onPress={() => handleReserveSpot(spot)}
+                      disabled={spot.status === 'reserved'}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.reserveButtonText,
+                        { color: spot.status === 'available' ? currentColors.text.primary : currentColors.text.disabled }
+                      ]}>
+                        {spot.status === 'available' ? 'Reserve Spot' : 'Already Reserved'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Callout>
+              </Marker>
+            ))}
+            
+            {/* User location marker */}
+            <Marker coordinate={userLocation}>
+              <View style={styles.userMarker}>
+                <View style={styles.userMarkerDot} />
+                <View style={styles.userMarkerRing} />
               </View>
             </Marker>
-          )}
-        </MapWrapper>
+          </MapView>
+        )}
         
         {/* Map Controls: vertical stack on right side above nav bar */}
         <View style={styles.mapControlsSide}>
@@ -664,7 +667,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
       <View style={styles.legendTopLeft}>
         <BlurView intensity={20} tint={currentThemeMode === 'dark' ? 'dark' : 'light'} style={styles.legendPanel}>
           <View style={styles.legendRow}>
-            <View style={[styles.legendDot, { backgroundColor: currentColors.status.available }]} />
+            <View style={[styles.legendDot, { backgroundColor: statusColors.available }]} />
             <Text style={[styles.legendLabel, { color: currentThemeMode === 'dark' ? '#fff' : '#333' }]}>Available</Text>
             <View style={[styles.legendDot, { backgroundColor: currentColors.accent, marginLeft: 12 }]} />
             <Text style={[styles.legendLabel, { color: currentThemeMode === 'dark' ? '#fff' : '#333' }]}>Full</Text>
@@ -862,27 +865,6 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     marginRight: 6,
-  },
-  userLocationMarker: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userLocationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'white',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  userLocationRing: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: 'white',
-    opacity: 0.5,
   },
 });
 

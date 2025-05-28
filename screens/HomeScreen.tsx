@@ -169,7 +169,7 @@ const HomeScreen: React.FC = () => {
                 dailyRate: 150,
                 monthlyRate: 3000,
                 discountPercent: 5,
-                isActive: true
+                isActive: true,
               }
             ];
             
