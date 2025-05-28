@@ -108,6 +108,8 @@ export interface PricingPlan {
   monthlyRate: number;
   discountPercent?: number;
   isActive: boolean;
+  description?: string;
+  features?: string[];
 }
 
 // Navigation types

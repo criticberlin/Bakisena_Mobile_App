@@ -22,6 +22,8 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import AppLayout from '../components/layout/AppLayout';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
+import { navigateTo, goBack } from '../navigation/NavigationHelper';
+import TouchableWrapper from '../components/TouchableWrapper';
 
 type PricesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PricesPage'>;
 
@@ -168,7 +170,7 @@ const PricesScreen: React.FC = () => {
           </Text>
           <ActionButton
             title={t('tryAgain' as any)}
-            onPress={() => navigation.replace('PricesPage')}
+            onPress={() => navigateTo(navigation, 'PricesPage')}
           />
         </View>
       </AppLayout>
@@ -186,14 +188,15 @@ const PricesScreen: React.FC = () => {
         borderBottomColor: currentColors.divider,
         backgroundColor: currentColors.background
       }]}>
-        <TouchableOpacity 
+        <TouchableWrapper 
           style={styles.backButton} 
-          onPress={() => navigation.goBack()}
+          onPress={() => goBack(navigation)}
+          delayPressIn={0}
         >
           <Text style={[styles.backButtonText, { color: currentColors.primary }]}>
             {isRTL ? '→' : '←'} {t('back' as any)}
           </Text>
-        </TouchableOpacity>
+        </TouchableWrapper>
         <Text style={[styles.headerTitle, { color: textColors.primary }]}>{t('pricingPlans' as any)}</Text>
         <View style={{ width: 50 }} />
       </View>

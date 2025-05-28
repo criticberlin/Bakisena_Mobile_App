@@ -29,6 +29,36 @@ interface NotificationItem {
   read: boolean;
 }
 
+// Default data to use as fallback
+const DEFAULT_PARKING_STATS: ParkingStatistics = {
+  totalSpaces: 120,
+  occupiedSpaces: 78,
+  reservedSpaces: 12,
+  availableSpaces: 30,
+  lastUpdated: new Date().toISOString()
+};
+
+const DEFAULT_USAGE_STATS: ParkingUsageStats = {
+  peakHours: '08:00 - 10:00, 17:00 - 19:00',
+  occupancyRate: '65%',
+  averageDuration: 3.2
+};
+
+const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'default1',
+    message: 'Welcome to Bakisena Parking!',
+    timestamp: new Date(),
+    read: false
+  },
+  {
+    id: 'default2',
+    message: 'Try our new reservation feature',
+    timestamp: new Date(Date.now() - 3600000),
+    read: false
+  }
+];
+
 const MonitorScreen = () => {
   const { themeMode, colors } = useTheme();
   const { t, isRTL } = useLanguage();
@@ -42,6 +72,7 @@ const MonitorScreen = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
 
   // Calculate percentages for visualization
   const occupancyPercentage = parkingData ? (parkingData.occupiedSpaces / parkingData.totalSpaces) * 100 : 0;
@@ -52,6 +83,7 @@ const MonitorScreen = () => {
   const fetchParkingStatistics = async () => {
     try {
       setLoading(true);
+      setIsUsingMockData(false);
       
       // Fetch the current parking statistics
       const statsRef = doc(firestore, 'parkingStatistics', 'current');
@@ -62,18 +94,10 @@ const MonitorScreen = () => {
         console.log('Fetched parking statistics:', data);
         setParkingData(data);
       } else {
-        console.log('No parking statistics found, creating default data');
-        // Create default data if none exists
-        const defaultStats: ParkingStatistics = {
-          totalSpaces: 120,
-          occupiedSpaces: 78,
-          reservedSpaces: 12,
-          availableSpaces: 30,
-          lastUpdated: new Date().toISOString()
-        };
-        
-        await setDoc(statsRef, defaultStats);
-        setParkingData(defaultStats);
+        console.log('No parking statistics found, using default data');
+        // Use default data if none exists in Firestore
+        setParkingData(DEFAULT_PARKING_STATS);
+        setIsUsingMockData(true);
       }
       
       // Fetch usage statistics
@@ -85,16 +109,10 @@ const MonitorScreen = () => {
         console.log('Fetched usage statistics:', data);
         setUsageStats(data);
       } else {
-        console.log('No usage statistics found, creating default data');
-        // Create default usage stats if none exists
-        const defaultUsage: ParkingUsageStats = {
-          peakHours: '08:00 - 10:00, 17:00 - 19:00',
-          occupancyRate: '65%',
-          averageDuration: 3.2
-        };
-        
-        await setDoc(usageRef, defaultUsage);
-        setUsageStats(defaultUsage);
+        console.log('No usage statistics found, using default data');
+        // Use default data if none exists
+        setUsageStats(DEFAULT_USAGE_STATS);
+        setIsUsingMockData(true);
       }
       
       // Fetch notifications
@@ -111,40 +129,18 @@ const MonitorScreen = () => {
         
         setNotifications(notificationData);
       } else {
-        console.log('No notifications found, creating default notifications');
-        // Create sample notifications if none exist
-        const defaultNotifications = [
-          {
-            id: 'notification1',
-            message: t('settings'),
-            timestamp: new Date(),
-            read: false,
-            type: 'parking'
-          },
-          {
-            id: 'notification2',
-            message: t('totalSlots'),
-            timestamp: new Date(Date.now() - 3600000), // 1 hour ago
-            read: false,
-            type: 'parking'
-          }
-        ];
-        
-        // Add default notifications to Firestore
-        for (const notification of defaultNotifications) {
-          const notifRef = doc(collection(firestore, 'notifications'));
-          await setDoc(notifRef, {
-            ...notification,
-            id: notifRef.id,
-            timestamp: serverTimestamp()
-          });
-        }
-        
-        setNotifications(defaultNotifications);
+        console.log('No notifications found, using default notifications');
+        // Use default notifications if none exist
+        setNotifications(DEFAULT_NOTIFICATIONS);
+        setIsUsingMockData(true);
       }
     } catch (error) {
       console.error('Error fetching parking data:', error);
-      Alert.alert(t('error'), String(error));
+      // Use default data in case of any errors
+      setParkingData(DEFAULT_PARKING_STATS);
+      setUsageStats(DEFAULT_USAGE_STATS);
+      setNotifications(DEFAULT_NOTIFICATIONS);
+      setIsUsingMockData(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -154,6 +150,12 @@ const MonitorScreen = () => {
   // Mark a notification as read
   const markNotificationAsRead = async (id: string) => {
     try {
+      if (isUsingMockData) {
+        // Just update local state for mock data
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        return;
+      }
+
       const notifRef = doc(firestore, 'notifications', id);
       await setDoc(notifRef, { read: true }, { merge: true });
       
@@ -161,6 +163,8 @@ const MonitorScreen = () => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      // Still update UI even if Firestore update fails
+      setNotifications(prev => prev.filter(n => n.id !== id));
     }
   };
 
@@ -172,22 +176,33 @@ const MonitorScreen = () => {
 
   // Set up real-time listener for parking statistics
   useEffect(() => {
-    // Set up listener for real-time updates
-    const statsRef = doc(firestore, 'parkingStatistics', 'current');
-    
-    const unsubscribe = onSnapshot(statsRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data() as ParkingStatistics;
-        console.log('Real-time parking statistics update:', data);
-        setParkingData(data);
-      }
-    }, (error) => {
-      console.error('Error in statistics snapshot listener:', error);
-    });
-    
-    // Clean up listener on unmount
-    return () => unsubscribe();
-  }, []);
+    // Only set up listener if not using mock data
+    if (isUsingMockData) return;
+
+    try {
+      // Set up listener for real-time updates
+      const statsRef = doc(firestore, 'parkingStatistics', 'current');
+      
+      const unsubscribe = onSnapshot(statsRef, (doc) => {
+        if (doc.exists()) {
+          const data = doc.data() as ParkingStatistics;
+          console.log('Real-time parking statistics update:', data);
+          setParkingData(data);
+        }
+      }, (error) => {
+        console.error('Error in statistics snapshot listener:', error);
+        // Fall back to default data if listener fails
+        if (!parkingData) setParkingData(DEFAULT_PARKING_STATS);
+      });
+      
+      // Clean up listener on unmount
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up real-time listener:', error);
+      // Fall back to default data if listener setup fails
+      if (!parkingData) setParkingData(DEFAULT_PARKING_STATS);
+    }
+  }, [isUsingMockData]);
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -226,6 +241,15 @@ const MonitorScreen = () => {
     >
       <Text style={[styles.headerText, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('monitor')}</Text>
       
+      {isUsingMockData && (
+        <View style={[styles.mockDataBanner, { backgroundColor: colors.accent + '20' }]}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
+          <Text style={[styles.mockDataText, { color: currentColors.text.primary }]}>
+            {t('usingDemoData' as any)}
+          </Text>
+        </View>
+      )}
+
       <View style={[styles.contentContainer]}>
         <View style={[styles.statusCard, { backgroundColor: currentColors.surface }]}>
           <Text style={[styles.statusTitle, { color: currentColors.text.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('parkingStatus')}</Text>
@@ -506,6 +530,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  mockDataBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  mockDataText: {
+    fontSize: 14,
+    marginLeft: 6,
   },
 });
 

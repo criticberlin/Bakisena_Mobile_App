@@ -1,11 +1,11 @@
-import { db } from '../config/firebase';
+import { firestore } from '../config/firebase';
 import { collection, addDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 // Test Firebase connection
 export const testFirebaseConnection = async () => {
   try {
     // Try to write a test document
-    const testDoc = await addDoc(collection(db, 'test'), {
+    const testDoc = await addDoc(collection(firestore, 'test'), {
       timestamp: serverTimestamp(),
       test: true
     });

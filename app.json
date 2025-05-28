@@ -7,7 +7,7 @@
     "icon": "./assets/images/Logo_Only.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/Logo_With_Border.png",
       "resizeMode": "contain",
@@ -16,19 +16,17 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.bakisena.app"
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Logo_With_Border.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.bakisena.app",
-      "permissions": [],
-      "softwareKeyboardLayoutMode": "resize",
-      "googleServicesFile": "./google-services.json"
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -44,6 +42,12 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#080d4a"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Bakisena to use your location to find nearby parking spots."
         }
       ]
     ],

@@ -35,6 +35,7 @@ import RTLWrapper from '../components/layout/RTLWrapper';
 import { firestore } from '../config/firebase';
 import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { ParkingLocation, PricingPlan } from '../types';
+import { navigateTo } from '../navigation/NavigationHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -69,36 +70,139 @@ const HomeScreen: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch parking locations
-        const locationsRef = collection(firestore, 'parkingLocations');
-        const q = query(locationsRef, orderBy('name'), limit(3));
-        
-        const locationsSnapshot = await getDocs(q);
-        const locations = locationsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as ParkingLocation[];
-        
-        setParkingLocations(locations);
-        
-        // Fetch pricing plans
-        const pricingRef = collection(firestore, 'pricingPlans');
-        const pricingQuery = query(pricingRef, orderBy('hourlyRate'));
-        
-        const pricingSnapshot = await getDocs(pricingQuery);
-        const plans = pricingSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as PricingPlan[];
-        
-        setPricingPlans(plans);
-        
-        // Get the featured pricing plan
-        if (plans.length > 0) {
-          setFeaturedPricingPlan(plans[0]);
+        // Create sample data if collections don't exist or are empty
+        // First, check if collections exist and have data
+        try {
+          // Fetch parking locations
+          const locationsRef = collection(firestore, 'parkingLocations');
+          const q = query(locationsRef, orderBy('name'), limit(3));
+          
+          const locationsSnapshot = await getDocs(q);
+          
+          // If no locations, use default data
+          if (locationsSnapshot.empty) {
+            // Use hard-coded demo data as fallback
+            const demoLocations: ParkingLocation[] = [
+              {
+                id: 'demo-loc1',
+                name: 'Downtown Parking',
+                address: '123 Main St, Cairo',
+                coordinates: {
+                  latitude: 30.0444,
+                  longitude: 31.2357
+                },
+                totalSlots: 150,
+                availableSlots: 45,
+                priceRange: {
+                  min: 10,
+                  max: 25
+                },
+                operatingHours: {
+                  open: '06:00',
+                  close: '22:00'
+                },
+                amenities: ['Security', 'CCTV', 'EV Charging'],
+                images: [],
+                levels: [] // Empty array to satisfy the type
+              },
+              {
+                id: 'demo-loc2',
+                name: 'Mall Parking',
+                address: '456 Commerce Blvd, Cairo',
+                coordinates: {
+                  latitude: 30.0484,
+                  longitude: 31.2387
+                },
+                totalSlots: 300,
+                availableSlots: 120,
+                priceRange: {
+                  min: 15,
+                  max: 30
+                },
+                operatingHours: {
+                  open: '09:00',
+                  close: '23:00'
+                },
+                amenities: ['Security', 'CCTV', 'Car Wash'],
+                images: [],
+                levels: [] // Empty array to satisfy the type
+              }
+            ];
+            
+            setParkingLocations(demoLocations);
+            console.log('Using demo parking location data');
+          } else {
+            // Use real data from Firebase
+            const locations = locationsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as ParkingLocation[];
+            
+            setParkingLocations(locations);
+            console.log(`Fetched ${locations.length} parking locations`);
+          }
+          
+          // Fetch pricing plans
+          const pricingRef = collection(firestore, 'pricingPlans');
+          const pricingQuery = query(pricingRef, orderBy('hourlyRate'));
+          
+          const pricingSnapshot = await getDocs(pricingQuery);
+          
+          // If no pricing plans, use default data
+          if (pricingSnapshot.empty) {
+            // Use hard-coded demo data as fallback
+            const demoPlans: PricingPlan[] = [
+              {
+                id: 'demo-plan1',
+                locationId: 'demo-loc1',
+                name: 'Standard Hourly',
+                hourlyRate: 15,
+                dailyRate: 120,
+                monthlyRate: 2500,
+                isActive: true
+              },
+              {
+                id: 'demo-plan2',
+                locationId: 'demo-loc2',
+                name: 'Premium Hourly',
+                hourlyRate: 20,
+                dailyRate: 150,
+                monthlyRate: 3000,
+                discountPercent: 5,
+                isActive: true
+              }
+            ];
+            
+            setPricingPlans(demoPlans);
+            
+            // Set the featured pricing plan
+            if (demoPlans.length > 0) {
+              setFeaturedPricingPlan(demoPlans[0]);
+            }
+            
+            console.log('Using demo pricing plan data');
+          } else {
+            // Use real data from Firebase
+            const plans = pricingSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as PricingPlan[];
+            
+            setPricingPlans(plans);
+            
+            // Get the featured pricing plan
+            if (plans.length > 0) {
+              setFeaturedPricingPlan(plans[0]);
+            }
+            
+            console.log(`Fetched ${plans.length} pricing plans`);
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          throw error;
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in data loading process:', error);
         setError('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
@@ -172,7 +276,7 @@ const HomeScreen: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.accent }]}
-            onPress={() => navigation.replace('Home')}
+            onPress={() => navigateTo(navigation, 'Home')}
           >
             <Text style={{ color: 'white' }}>Try Again</Text>
           </TouchableOpacity>
@@ -221,7 +325,7 @@ const HomeScreen: React.FC = () => {
                   borderColor: colors.accent,
                   backgroundColor: themeMode === 'dark' ? 'rgba(42, 42, 79, 0.6)' : 'rgba(240, 240, 250, 0.6)'
                 }]} 
-                onPress={() => navigation.navigate('Account')}
+                onPress={() => navigateTo(navigation, 'Account')}
                 activeOpacity={0.7}
                 entering={FadeIn.delay(800).duration(500)}
               >
@@ -278,7 +382,7 @@ const HomeScreen: React.FC = () => {
           }
         ]}>
           <RTLWrapper style={{ width: '100%' }} ignoreArabic={true}>
-            <AnimatedTouchableOpacity 
+            <TouchableOpacity 
               style={[
                 styles.quickActionItem,
                 { 
@@ -289,9 +393,9 @@ const HomeScreen: React.FC = () => {
                   ...theme.shadows.lg,
                 }
               ]} 
-              onPress={() => navigation.navigate('Parking')}
+              onPress={() => navigateTo(navigation, 'Parking')}
               activeOpacity={0.8}
-              entering={SlideInUp.delay(600).duration(500)}
+              delayPressIn={0}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
                 <Ionicons name="car" size={24} color={colors.accent} />
@@ -299,9 +403,9 @@ const HomeScreen: React.FC = () => {
               <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
                 {t('findSpot')}
               </Text>
-            </AnimatedTouchableOpacity>
+            </TouchableOpacity>
             
-            <AnimatedTouchableOpacity 
+            <TouchableOpacity 
               style={[
                 styles.quickActionItem,
                 { 
@@ -312,9 +416,9 @@ const HomeScreen: React.FC = () => {
                   ...theme.shadows.lg,
                 }
               ]} 
-              onPress={() => navigation.navigate('Monitor')}
+              onPress={() => navigateTo(navigation, 'Monitor')}
               activeOpacity={0.8}
-              entering={SlideInUp.delay(650).duration(500)}
+              delayPressIn={0}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
                 <Ionicons name="time" size={24} color={colors.accent} />
@@ -322,9 +426,9 @@ const HomeScreen: React.FC = () => {
               <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
                 {t('bookNow')}
               </Text>
-            </AnimatedTouchableOpacity>
+            </TouchableOpacity>
             
-            <AnimatedTouchableOpacity 
+            <TouchableOpacity 
               style={[
                 styles.quickActionItem,
                 { 
@@ -335,9 +439,9 @@ const HomeScreen: React.FC = () => {
                   ...theme.shadows.lg,
                 }
               ]} 
-              onPress={() => navigation.navigate('Connected')}
+              onPress={() => navigateTo(navigation, 'Connected')}
               activeOpacity={0.8}
-              entering={SlideInUp.delay(700).duration(500)}
+              delayPressIn={0}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '20' }]}>
                 <Ionicons name="map" size={24} color={colors.accent} />
@@ -345,7 +449,7 @@ const HomeScreen: React.FC = () => {
               <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
                 {t('navigate')}
               </Text>
-            </AnimatedTouchableOpacity>
+            </TouchableOpacity>
           </RTLWrapper>
         </Animated.View>
 
@@ -362,12 +466,13 @@ const HomeScreen: React.FC = () => {
             { color: colors.text.primary }
           ]}>{t('realTimeAvailability')}</Text>
           <TouchableOpacity 
-            onPress={() => navigation.navigate('Parking')}
+            onPress={() => navigateTo(navigation, 'Parking')}
             activeOpacity={0.7}
             style={[
               styles.viewAllButton,
               { flexDirection: isRTL ? 'row-reverse' : 'row' }
             ]}
+            delayPressIn={0}
           >
             <Text style={[
               styles.viewAllText,
@@ -391,7 +496,7 @@ const HomeScreen: React.FC = () => {
                 <ParkingStatusCard  
                   location={location} 
                   onPress={() => {
-                    navigation.navigate('Parking');
+                    navigateTo(navigation, 'Parking');
                   }}
                 />
               </Animated.View>
@@ -422,12 +527,13 @@ const HomeScreen: React.FC = () => {
             { color: colors.text.primary }
           ]}>{t('pricingOverview')}</Text>
           <TouchableOpacity 
-            onPress={() => navigation.navigate('PricesPage')}
+            onPress={() => navigateTo(navigation, 'PricesPage')}
             activeOpacity={0.7}
             style={[
               styles.viewAllButton,
               { flexDirection: isRTL ? 'row-reverse' : 'row' }
             ]}
+            delayPressIn={0}
           >
             <Text style={[
               styles.viewAllText,
@@ -502,7 +608,7 @@ const HomeScreen: React.FC = () => {
         >
           <ActionButton 
             title={t('login')} 
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigateTo(navigation, 'Login')}
             style={{
               ...styles.ctaButton,
               ...theme.shadows.md
@@ -514,7 +620,7 @@ const HomeScreen: React.FC = () => {
           <ActionButton 
             title={t('register')} 
             variant="outline"
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigateTo(navigation, 'Register')}
             style={{
               ...styles.ctaButton,
               ...theme.shadows.sm

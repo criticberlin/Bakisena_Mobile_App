@@ -6,7 +6,7 @@ import {
   User
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth, firestore } from '../config/firebase';
 
 export interface UserFirebase {
   uid: string;
@@ -41,7 +41,7 @@ export const login = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
     // Check if user is admin
-    const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+    const userDoc = await getDoc(doc(firestore, 'users', userCredential.user.uid));
     const isAdmin = userDoc.exists() && userDoc.data().isAdmin === true;
     
     console.log('Login successful:', userCredential.user.uid, 'isAdmin:', isAdmin);
@@ -79,7 +79,7 @@ export const getCurrentUser = async (): Promise<UserFirebase | null> => {
   if (!user) return null;
 
   try {
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userDoc = await getDoc(doc(firestore, 'users', user.uid));
     const userData = userDoc.data();
 
     return {
@@ -111,7 +111,7 @@ export const createAdminUser = async (email: string, password: string, name: str
     const user = userCredential.user;
 
     // Create admin document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(firestore, 'users', user.uid), {
       email: user.email,
       name: name,
       isAdmin: true,
@@ -138,7 +138,7 @@ export const initializeAdminAccount = async () => {
   try {
     // First check if admin exists in Firestore
     const adminQuery = query(
-      collection(db, 'users'),
+      collection(firestore, 'users'),
       where('email', '==', adminEmail)
     );
     const adminSnapshot = await getDocs(adminQuery);
@@ -146,7 +146,7 @@ export const initializeAdminAccount = async () => {
     if (!adminSnapshot.empty) {
       // Admin exists, update isAdmin to true
       const adminDoc = adminSnapshot.docs[0];
-      await setDoc(doc(db, 'users', adminDoc.id), {
+      await setDoc(doc(firestore, 'users', adminDoc.id), {
         ...adminDoc.data(),
         isAdmin: true
       }, { merge: true });
@@ -158,7 +158,7 @@ export const initializeAdminAccount = async () => {
     const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
     
     // Create the admin user document in Firestore
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
+    await setDoc(doc(firestore, 'users', userCredential.user.uid), {
       name: 'Admin User',
       email: adminEmail,
       isAdmin: true,
@@ -173,7 +173,7 @@ export const initializeAdminAccount = async () => {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
         // Update the user document to ensure isAdmin is true
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
+        await setDoc(doc(firestore, 'users', userCredential.user.uid), {
           email: adminEmail,
           isAdmin: true,
           updatedAt: new Date().toISOString()
@@ -193,7 +193,7 @@ export const initializeAdminAccount = async () => {
 // Check if user is admin
 export const isUserAdmin = async (userId: string): Promise<boolean> => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userDoc = await getDoc(doc(firestore, 'users', userId));
     if (userDoc.exists()) {
       const userData = userDoc.data();
       return userData.isAdmin === true;

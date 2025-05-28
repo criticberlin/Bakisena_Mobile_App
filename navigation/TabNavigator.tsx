@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Platform, Dimensions, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
@@ -10,6 +10,8 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import { useAuth } from '../components/AuthContext';
 import Svg, { Path } from 'react-native-svg';
 import CustomTabBar from '../components/layout/CustomTabBar';
+import { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
+import { RouteProp } from '@react-navigation/native';
 
 // Import the screens for each tab
 import MonitorScreen from '../screens/MonitorScreen';
@@ -38,24 +40,17 @@ type TabBarIconProps = {
   size: number;
 };
 
-// Simple route type that works for our case
-type RouteProps = {
-  name: keyof TabParamList;
-};
-
 const TabNavigator = () => {
   const insets = useSafeAreaInsets();
   const { themeMode, colors } = useTheme();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
   
-  console.log('TabNavigator: isAdmin status from useAuth:', isAdmin);
-  
   // Determine if we're in dark mode for theming
   const isDarkMode = themeMode === 'dark';
 
-  // Create dynamic styles based on theme
-  const dynamicStyles = {
+  // Create dynamic styles based on theme using useMemo to prevent unnecessary recalculations
+  const dynamicStyles = useMemo(() => ({
     tabBarBackgroundContainer: {
       backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
     },
@@ -63,17 +58,18 @@ const TabNavigator = () => {
       borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
       backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
     }
-  };
+  }), [isDarkMode]);
   
+  // Use screenOptions directly instead of memoizing
   return (
     <Tab.Navigator
       initialRouteName="Home"
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={({ route }: {route: RouteProps}) => ({
+      screenOptions={{
         headerShown: false,
         tabBarShowLabel: false, // Hide default labels, handled by CustomTabBar
-        tabBarStyle: { display: 'none' }, // Hide default bar, CustomTabBar is absolutely positioned
-      })}
+        tabBarStyle: { display: 'none' as const }, // Hide default bar, CustomTabBar is absolutely positioned
+      }}
     >
       <Tab.Screen 
         name="Home" 

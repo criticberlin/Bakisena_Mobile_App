@@ -8,6 +8,8 @@ import { useLanguage } from '../constants/translations/LanguageContext';
 import { firestore } from '../config/firebase';
 import { collection, getDocs, doc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../components/AuthContext';
+import { navigateTo } from '../navigation/NavigationHelper';
+import { useNavigation } from '@react-navigation/native';
 
 interface ConnectedDevice {
   id: string;
@@ -19,51 +21,116 @@ interface ConnectedDevice {
   userId?: string;
 }
 
+// Default devices to show when Firestore is not available
+const DEFAULT_DEVICES: ConnectedDevice[] = [
+  {
+    id: 'default1',
+    name: 'My Car',
+    type: 'vehicle',
+    status: 'connected',
+    lastConnected: new Date().toISOString(),
+    isActive: true,
+    userId: 'defaultUser'
+  },
+  {
+    id: 'default2',
+    name: 'Home System',
+    type: 'smart_home',
+    status: 'connected',
+    lastConnected: new Date().toISOString(),
+    isActive: true,
+    userId: 'defaultUser'
+  },
+  {
+    id: 'default3',
+    name: 'Credit Card',
+    type: 'payment',
+    status: 'disconnected',
+    lastConnected: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    isActive: false,
+    userId: 'defaultUser'
+  },
+  {
+    id: 'default4',
+    name: 'Smartwatch',
+    type: 'wearable',
+    status: 'connected',
+    lastConnected: new Date().toISOString(),
+    isActive: true,
+    userId: 'defaultUser'
+  }
+];
+
 const ConnectedScreen = () => {
   const { themeMode, colors, switchStyles } = useTheme();
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
+  const navigation = useNavigation();
 
   // Get current theme colors
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
   const [devices, setDevices] = useState<ConnectedDevice[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
 
   // Fetch devices from Firebase
   useEffect(() => {
-    if (!user?.uid) return;
-
+    // Always fetch data, whether user is logged in or not
     setLoading(true);
     
-    // Create a query to get devices for the current user
-    const devicesRef = collection(firestore, 'connectedDevices');
-    const q = query(devicesRef, where('userId', '==', user.uid));
-    
-    // Set up real-time listener
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      try {
-        const deviceData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as ConnectedDevice[];
-        
-        console.log(`Fetched ${deviceData.length} connected devices`);
-        setDevices(deviceData);
-      } catch (error) {
-        console.error('Error fetching connected devices:', error);
-        Alert.alert(t('error'), String(error));
-      } finally {
-        setLoading(false);
-      }
-    }, (error) => {
-      console.error('Error in device snapshot listener:', error);
+    if (!user?.uid) {
+      console.log("No user logged in, using mock data");
+      setDevices(DEFAULT_DEVICES);
+      setIsUsingMockData(true);
       setLoading(false);
-      Alert.alert(t('error'), String(error));
-    });
+      return;
+    }
     
-    // Clean up listener on unmount
-    return () => unsubscribe();
+    try {
+      // Create a query to get devices for the current user
+      const devicesRef = collection(firestore, 'connectedDevices');
+      const q = query(devicesRef, where('userId', '==', user.uid));
+      
+      // Set up real-time listener
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        try {
+          if (snapshot.empty) {
+            console.log('No connected devices found, using mock data');
+            setDevices(DEFAULT_DEVICES);
+            setIsUsingMockData(true);
+          } else {
+            const deviceData = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as ConnectedDevice[];
+            
+            console.log(`Fetched ${deviceData.length} connected devices`);
+            setDevices(deviceData);
+            setIsUsingMockData(false);
+          }
+        } catch (error) {
+          console.error('Error processing connected devices:', error);
+          setDevices(DEFAULT_DEVICES);
+          setIsUsingMockData(true);
+        } finally {
+          setLoading(false);
+        }
+      }, (error) => {
+        console.error('Error in device snapshot listener:', error);
+        setDevices(DEFAULT_DEVICES);
+        setIsUsingMockData(true);
+        setLoading(false);
+      });
+      
+      // Clean up listener on unmount
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up device listener:', error);
+      setDevices(DEFAULT_DEVICES);
+      setIsUsingMockData(true);
+      setLoading(false);
+    }
   }, [user?.uid]);
 
   const getDeviceIcon = (type: string) => {
@@ -83,7 +150,17 @@ const ConnectedScreen = () => {
 
   const toggleDeviceStatus = async (id: string, currentStatus: boolean) => {
     try {
-      // Update in Firestore
+      if (isUsingMockData) {
+        // Just update local state for mock data
+        setDevices(prevDevices => 
+          prevDevices.map(device => 
+            device.id === id ? { ...device, isActive: !currentStatus } : device
+          )
+        );
+        return;
+      }
+      
+      // Update in Firestore for real data
       const deviceRef = doc(firestore, 'connectedDevices', id);
       await updateDoc(deviceRef, {
         isActive: !currentStatus,
@@ -94,14 +171,15 @@ const ConnectedScreen = () => {
       console.log(`Device ${id} status updated`);
     } catch (error) {
       console.error('Error updating device status:', error);
-      Alert.alert(t('error'), String(error));
       
       // Revert the toggle in the UI if the Firebase update fails
-      setDevices(prevDevices => 
-        prevDevices.map(device => 
-          device.id === id ? { ...device, isActive: currentStatus } : device
-        )
-      );
+      if (!isUsingMockData) {
+        setDevices(prevDevices => 
+          prevDevices.map(device => 
+            device.id === id ? { ...device, isActive: currentStatus } : device
+          )
+        );
+      }
     }
   };
 
@@ -222,6 +300,15 @@ const ConnectedScreen = () => {
     >
       <Text style={[styles.headerText, { color: currentColors.text.primary }]}>{t('connected')}</Text>
       
+      {isUsingMockData && (
+        <View style={[styles.mockDataBanner, { backgroundColor: colors.accent + '20' }]}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
+          <Text style={[styles.mockDataText, { color: currentColors.text.primary }]}>
+            {t('usingDemoData' as any)}
+          </Text>
+        </View>
+      )}
+      
       <View style={[styles.filterContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <FilterButton title={t('all')} value="all" />
         <FilterButton title={t('car')} value="vehicle" />
@@ -248,8 +335,8 @@ const ConnectedScreen = () => {
         <ActionButton
           title={t('connected')}
           onPress={handleAddDevice}
-          variant="primary"
-          icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
+          icon={<Ionicons name="add-circle-outline" size={22} color="#FFF" />}
+          style={{ flex: 1 }}
         />
       </View>
     </AppLayout>
@@ -364,6 +451,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  mockDataBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  mockDataText: {
+    fontSize: 14,
+    marginLeft: 6,
   },
 });
 

@@ -51,92 +51,80 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
   // Support for legacy props - prefer title, fallback to label, then textKey
   const buttonText = title || label || textKey || '';
   
-  // Determine current theme colors
+  // Determine current theme colors - simplified to avoid performance issues
   const currentColors = themeMode === 'light' ? colors.light : colors.dark;
   
-  // Determine background color based on variant
+  // Determine background color based on variant - simplified for performance
   const getBackgroundColor = () => {
-    if (disabled) return '#CCCCCC'; // Default disabled color
+    if (disabled) return '#CCCCCC';
     
     switch (variant) {
-      case 'primary':
-        return colors.accent;
-      case 'secondary':
-        return colors.secondary || '#4B5563';
+      case 'primary': return colors.accent;
+      case 'secondary': return colors.secondary || '#4B5563';
       case 'outline':
-      case 'ghost':
-        return 'transparent';
-      default:
-        return colors.accent;
+      case 'ghost': return 'transparent';
+      default: return colors.accent;
     }
   };
   
-  // Determine text color based on variant
+  // Determine text color based on variant - simplified for performance
   const getTextColor = () => {
     if (disabled) return '#777777';
     
     switch (variant) {
       case 'primary':
-      case 'secondary':
-        return '#FFFFFF';
+      case 'secondary': return '#FFFFFF';
       case 'outline':
-      case 'ghost':
-        return colors.accent;
-      default:
-        return '#FFFFFF';
+      case 'ghost': return colors.accent;
+      default: return '#FFFFFF';
     }
   };
   
-  // Determine border style based on variant
-  const getBorderStyle = () => {
-    if (variant === 'outline') {
-      return {
-        borderWidth: 1,
-        borderColor: disabled ? '#CCCCCC' : colors.accent
-      };
-    }
-    return {};
-  };
+  // Pre-calculate style values instead of calculating in render
+  const backgroundColor = getBackgroundColor();
+  const textColor = getTextColor();
+  const borderStyle = variant === 'outline' ? {
+    borderWidth: 1,
+    borderColor: disabled ? '#CCCCCC' : colors.accent
+  } : {};
   
-  // Determine padding based on size
-  const getPadding = () => {
-    switch (size) {
-      case 'small':
-        return { paddingVertical: 8, paddingHorizontal: 12 };
-      case 'large':
-        return { paddingVertical: 14, paddingHorizontal: 20 };
-      default: // medium
-        return { paddingVertical: 12, paddingHorizontal: 16 };
-    }
-  };
+  // Determine padding based on size - simplified for performance
+  let paddingStyle;
+  switch (size) {
+    case 'small':
+      paddingStyle = { paddingVertical: 8, paddingHorizontal: 12 };
+      break;
+    case 'large':
+      paddingStyle = { paddingVertical: 14, paddingHorizontal: 20 };
+      break;
+    default: // medium
+      paddingStyle = { paddingVertical: 12, paddingHorizontal: 16 };
+  }
   
-  // Determine font size based on size
-  const getFontSize = () => {
-    switch (size) {
-      case 'small':
-        return 14;
-      case 'large':
-        return 18;
-      default: // medium
-        return 16;
-    }
-  };
+  // Determine font size based on size - simplified for performance
+  let fontSize;
+  switch (size) {
+    case 'small': fontSize = 14; break;
+    case 'large': fontSize = 18; break;
+    default: fontSize = 16;
+  }
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        getPadding(),
-        getBorderStyle(),
-        { backgroundColor: getBackgroundColor() },
+        paddingStyle,
+        borderStyle,
+        { backgroundColor },
         style
       ]}
       onPress={onPress}
       disabled={isLoading || disabled}
       activeOpacity={0.7}
+      delayPressIn={0}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color={getTextColor()} />
+        <ActivityIndicator size="small" color={textColor} />
       ) : (
         <View style={styles.contentContainer}>
           {icon && iconPosition === 'left' && <View style={styles.iconContainer}>{icon}</View>}
@@ -144,7 +132,7 @@ const ActionButton: React.FC<ExtendedActionButtonProps> = ({
             <Text
               style={[
                 styles.buttonText,
-                { color: getTextColor(), fontSize: getFontSize() },
+                { color: textColor, fontSize },
                 textStyle
               ]}
             >
